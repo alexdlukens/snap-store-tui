@@ -6,14 +6,13 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 VALID_CATEGORY_FIELDS = ["name", "type", "title", "summary", "description", "media"]
 
 
 class Media(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     height: Optional[float] = None
     type: str
@@ -22,8 +21,7 @@ class Media(BaseModel):
 
 
 class Category(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     description: Optional[str] = None
     media: Optional[Media] = None
@@ -34,13 +32,11 @@ class Category(BaseModel):
 
 
 class CategoryResponse(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     categories: Optional[List[Category]] = None
 
 class SingleCategoryResponse(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     category: Category
