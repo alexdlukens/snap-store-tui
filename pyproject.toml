@@ -3,9 +3,10 @@ name = "snap-store-tui"
 version = "0.1.0"
 description = ""
 authors = ["Alexander Lukens <alexdlukens@gmail.com>"]
-license = {file = "LICENSE"}
-readme = {file = "README.txt", content-type = "text/markdown"}
+license = "MIT"
+readme = "README.md"
 keywords = ["snap", "store", "snapcraft", "tui", "terminal", "cli"]
+repository = "https://github.com/alexdlukens/snap-store-tui"
 
 [tool.poetry.dependencies]
 python = "^3.10"
