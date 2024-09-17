@@ -38,3 +38,9 @@ class CategoryResponse(BaseModel):
         extra = "forbid"
 
     categories: Optional[List[Category]] = None
+
+class SingleCategoryResponse(BaseModel):
+    class Config:
+        extra = "forbid"
+
+    category: Category

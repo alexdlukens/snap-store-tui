@@ -1,8 +1,9 @@
 import requests
 
 from snap_store_tui.schemas.snaps.categories import (
-    CategoryResponse,
     VALID_CATEGORY_FIELDS,
+    CategoryResponse,
+    SingleCategoryResponse,
 )
 
 
@@ -32,9 +33,7 @@ class SnapsAPI:
         response.raise_for_status()
         return CategoryResponse.model_validate_json(response.content)
 
-    def get_snap_category_by_name(
-        self, name: str, fields: list[str] | None = None
-    ) -> dict:
+    def get_category_by_name(self, name: str, fields: list[str] | None = None) -> SingleCategoryResponse:
         query = {}
         if fields is not None:
             if not all(field in VALID_CATEGORY_FIELDS for field in fields):
@@ -46,4 +45,4 @@ class SnapsAPI:
         route = f"/snaps/category/{name}"
         response = self.client.get(f"{self.base_url}{route}", params=query)
         response.raise_for_status()
-        return response.json()
+        return SingleCategoryResponse.model_validate_json(response.content)
