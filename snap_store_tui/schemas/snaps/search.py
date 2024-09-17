@@ -86,7 +86,7 @@ class Snap(BaseModel):
     website: Optional[str] = None
 
 
-class Result(BaseModel):
+class SearchResult(BaseModel):
     model_config = ConfigDict(extra="forbid", exclude_unset=True, exclude_none=True)
 
     name: str
@@ -99,4 +99,4 @@ class SearchResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", exclude_unset=True, exclude_none=True)
 
     error_list: Optional[List[ErrorListItem]] = Field(None, alias="error-list")
-    results: List[Result]
+    results: List[SearchResult]
