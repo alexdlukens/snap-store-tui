@@ -2,8 +2,6 @@
 #   filename:  category_schema.json
 #   timestamp: 2024-09-17T00:34:03+00:00
 
-from __future__ import annotations
-
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -35,6 +33,7 @@ class CategoryResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     categories: Optional[List[Category]] = None
+
 
 class SingleCategoryResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")

@@ -33,7 +33,9 @@ class SnapsAPI:
         response.raise_for_status()
         return CategoryResponse.model_validate_json(response.content)
 
-    def get_category_by_name(self, name: str, fields: list[str] | None = None) -> SingleCategoryResponse:
+    def get_category_by_name(
+        self, name: str, fields: list[str] | None = None
+    ) -> SingleCategoryResponse:
         query = {}
         if fields is not None:
             if not all(field in VALID_CATEGORY_FIELDS for field in fields):
