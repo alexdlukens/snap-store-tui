@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "snap-store-tui"
+version = "0.1.0"
+description = ""
+authors = ["Alexander Lukens <alexdlukens@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+textual = "^0.79.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.6.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
