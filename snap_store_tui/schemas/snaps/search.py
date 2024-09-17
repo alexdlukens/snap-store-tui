@@ -9,22 +9,45 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from snap_store_tui.schemas.snaps.categories import Category, Media
 
+VALID_SEARCH_CATEGORY_FIELDS = [
+    "base",
+    "categories",
+    "channel",
+    "common-ids",
+    "confinement",
+    "contact",
+    "description",
+    "download",
+    "license",
+    "media",
+    "prices",
+    "private",
+    "publisher",
+    "revision",
+    "store-url",
+    "summary",
+    "title",
+    "type",
+    "version",
+    "website",
+]
+
 
 class ErrorListItem(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
     code: str
     message: str
 
 
 class Download(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
     size: float
 
 
 class Revision(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
     base: Optional[str] = None
     channel: Optional[str] = None
@@ -37,7 +60,7 @@ class Revision(BaseModel):
 
 
 class Publisher(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
     display_name: str = Field(..., alias="display-name")
     id: str
@@ -46,7 +69,7 @@ class Publisher(BaseModel):
 
 
 class Snap(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
     categories: Optional[List[Category]] = None
     contact: Optional[str] = None
@@ -64,7 +87,7 @@ class Snap(BaseModel):
 
 
 class Result(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True, exclude_none=True)
 
     name: str
     revision: Optional[Revision] = None
@@ -73,7 +96,7 @@ class Result(BaseModel):
 
 
 class SearchResponse(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", exclude_unset=True, exclude_none=True)
 
     error_list: Optional[List[ErrorListItem]] = Field(None, alias="error-list")
     results: List[Result]

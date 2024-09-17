@@ -5,6 +5,10 @@ from snap_store_tui.schemas.snaps.categories import (
     CategoryResponse,
     SingleCategoryResponse,
 )
+from snap_store_tui.schemas.snaps.search import (
+    VALID_SEARCH_CATEGORY_FIELDS,
+    SearchResponse,
+)
 
 
 class SnapsAPI:
@@ -48,3 +52,55 @@ class SnapsAPI:
         response = self.client.get(f"{self.base_url}{route}", params=query)
         response.raise_for_status()
         return SingleCategoryResponse.model_validate_json(response.content)
+
+    def find(
+        self,
+        query: str | None = None,
+        fields: str | None = None,
+        name_startswith: str | None = None,
+        architecture: str | None = None,
+        common_id: str | None = None,
+        category: str | None = None,
+        channel: str | None = None,
+        confiement: str | None = None,
+        featured: bool = False,
+        private: bool = False,
+        publisher: str | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> SearchResponse:
+        """from https://api.snapcraft.io/docs/search.html#snaps_find"""
+
+        route = "/snaps/find"
+        query_dict: dict = {
+            "q": query,
+            "name_startswith": name_startswith,
+            "architecture": architecture,
+            "common_id": common_id,
+            "category": category,
+            "channel": channel,
+            "confinement": confiement,
+            "featured": featured,
+            "private": private,
+            "publisher": publisher,
+        }
+        if fields is not None:
+            if not all(field in VALID_SEARCH_CATEGORY_FIELDS for field in fields):
+                raise ValueError(
+                    f"Invalid fields. Allowed fields: {VALID_CATEGORY_FIELDS}"
+                )
+            query_dict["fields"] = ",".join(fields)
+        extra_headers = headers or {}
+        query_dict = {
+            k: v for k, v in query_dict.items() if (v is not None) and (v != "")
+        }
+
+        # snap store expects "true" or "false" for boolean values
+        for key in ["featured", "private"]:
+            if key in query_dict:
+                query_dict[key] = str(query_dict[key]).lower()
+
+        response = self.client.get(
+            f"{self.base_url}{route}", params=query_dict, headers=extra_headers
+        )
+        response.raise_for_status()
+        return SearchResponse.model_validate_json(response.content)
