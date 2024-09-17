@@ -27,6 +27,7 @@ class Category(BaseModel):
     summary: Optional[str] = None
     title: Optional[str] = None
     type: Optional[str] = None
+    featured: Optional[bool] = None
 
 
 class CategoryResponse(BaseModel):
