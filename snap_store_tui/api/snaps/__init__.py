@@ -85,8 +85,13 @@ class SnapsAPI:
         }
         if fields is not None:
             if not all(field in VALID_SEARCH_CATEGORY_FIELDS for field in fields):
+                bad_fields = [
+                    field
+                    for field in fields
+                    if field not in VALID_SEARCH_CATEGORY_FIELDS
+                ]
                 raise ValueError(
-                    f"Invalid fields. Allowed fields: {VALID_CATEGORY_FIELDS}"
+                    f"Invalid fields: ({bad_fields}). Allowed fields: {VALID_SEARCH_CATEGORY_FIELDS}"
                 )
             query_dict["fields"] = ",".join(fields)
         extra_headers = headers or {}
