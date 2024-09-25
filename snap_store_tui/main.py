@@ -2,8 +2,8 @@ from textual.app import App, ComposeResult
 from textual.widgets import DataTable, Footer, Header
 
 from snap_store_tui.api.snaps import SnapsAPI
-from snap_store_tui.schemas.snaps.categories import CategoryResponse
 from snap_store_tui.elements.category_modal import CategoryModal
+from snap_store_tui.schemas.snaps.categories import CategoryResponse
 
 snaps_api = SnapsAPI(
     base_url="https://api.snapcraft.io",
@@ -15,6 +15,8 @@ TABLE_COLUMNS = ("#", "Name", "Description")
 
 all_categories = snaps_api.get_categories()
 all_categories: list[str] = [category.name for category in all_categories.categories]
+
+
 def get_top_snaps_from_category(api: SnapsAPI, category: str):
     return api.find(category=category, fields=["title", "store-url", "summary"])
 
@@ -44,7 +46,7 @@ class SnapStoreTUI(App):
     async def action_choose_category(self):
         # setup category modal here
         self.run_worker(self.get_updated_category)
-    
+
     def update_table(self):
         table = self.query_one(DataTable)
         table.clear()
