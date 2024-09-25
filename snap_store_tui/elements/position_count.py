@@ -26,4 +26,4 @@ class PositionCount(Label):
         self.set_new_text()
 
     def set_new_text(self):
-        self.update(f"{self._current_number} of {self._total}")
+        self.update(f"{self._current_number}/{self._total}")

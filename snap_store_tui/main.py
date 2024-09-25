@@ -18,7 +18,7 @@ snaps_api = SnapsAPI(
     headers={"Snap-Device-Series": "16"},
 )
 ConnectionError
-TABLE_COLUMNS = ("#", "Name", "Description")
+TABLE_COLUMNS = ("Name", "Description")
 
 
 def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
@@ -91,14 +91,14 @@ class SnapStoreTUI(App):
             pass
         self.table_position_count.total = len(top_snaps.results)
         self.table_position_count.current_number = 0
-        for i, snap_result in enumerate(top_snaps.results):
-            table.add_row(str(i), snap_result.snap.title, snap_result.snap.summary)
+        for snap_result in top_snaps.results:
+            table.add_row(snap_result.snap.title, snap_result.snap.summary)
         table.set_loading(False)
 
     def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
         table = self.query_one(DataTable)
-        self.table_position_count.current_number = table.get_row_index(
-            row_highlighted.row_key
+        self.table_position_count.current_number = (
+            table.get_row_index(row_highlighted.row_key) + 1
         )
 
     def on_mount(self):
