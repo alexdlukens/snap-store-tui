@@ -95,6 +95,12 @@ class SnapStoreTUI(App):
             table.add_row(str(i), snap_result.snap.title, snap_result.snap.summary)
         table.set_loading(False)
 
+    def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
+        table = self.query_one(DataTable)
+        self.table_position_count.current_number = table.get_row_index(
+            row_highlighted.row_key
+        )
+
     def on_mount(self):
         table = self.query_one(DataTable)
         table.cursor_type = "row"
