@@ -25,6 +25,10 @@ class SnapStoreTUI(App):
     current_category = "featured"
     BINDINGS = [("q", "quit", "Quit"), ("c", "choose_category", "Category")]
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.update_title()
+
     def compose(self) -> ComposeResult:
         yield Header()
         yield DataTable()
@@ -42,10 +46,14 @@ class SnapStoreTUI(App):
             wait_for_dismiss=True,
         )
         self.update_table()
+        self.update_title()
 
     async def action_choose_category(self):
         # setup category modal here
         self.run_worker(self.get_updated_category)
+
+    def update_title(self):
+        self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
     def update_table(self):
         table = self.query_one(DataTable)
