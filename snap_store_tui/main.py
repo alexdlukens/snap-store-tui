@@ -4,11 +4,12 @@ import requests.exceptions
 from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
-from textual.widgets import DataTable, Footer, Header
+from textual.widgets import DataTable, Footer, Header, Input
 
 from snap_store_tui.api.snaps import SnapsAPI
 from snap_store_tui.elements.category_modal import CategoryModal
 from snap_store_tui.elements.position_count import PositionCount
+from snap_store_tui.elements.search_modal import SnapSearchModal
 from snap_store_tui.elements.snap_modal import SnapModal
 from snap_store_tui.schemas.snaps.search import SearchResponse
 
@@ -27,26 +28,30 @@ def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
 
 class SnapStoreTUI(App):
     current_category = "featured"
-    BINDINGS = [("q", "quit", "Quit"), ("c", "choose_category", "Category")]
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("c", "choose_category", "Category"),
+        ("s", "search_snaps", "Search"),
+    ]
     CSS_PATH = Path(__file__).parent / "styles" / "main.tcss"
 
     def __init__(self) -> None:
         super().__init__()
-        self.all_categories = []
-        try:
-            categories_response = snaps_api.get_categories()
-            self.all_categories: list[str] = [
-                category.name for category in categories_response.categories
-            ]
-        except requests.exceptions.ConnectionError:
-            # todo: show network error modal
-            pass
+
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
+        self.setup_data_table()
+
+    def setup_data_table(self):
+        self.data_table = DataTable()
+        self.data_table.add_columns(*TABLE_COLUMNS)
+        for column in self.data_table.columns:
+            self.data_table.columns[column].auto_width = True
+        self.data_table.cursor_type = "row"
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield DataTable()
+        yield self.data_table
         with Horizontal(id="footer-outer"):
             with Horizontal(id="footer-inner"):
                 yield Footer(show_command_palette=False)
@@ -67,6 +72,18 @@ class SnapStoreTUI(App):
         self.update_table()
         self.update_title()
 
+    @work
+    async def get_snap_search(self):
+        # open modal
+        # get search query
+        search_query: Input.Submitted = await self.push_screen(
+            SnapSearchModal(), wait_for_dismiss=True
+        )
+        self.current_category = "Search"
+        # send to update table to use "find" method
+        self.update_table(search_query=search_query.value)
+        self.update_title()
+
     async def action_choose_category(self):
         # setup category modal here
         self.get_updated_category()
@@ -74,36 +91,49 @@ class SnapStoreTUI(App):
     def update_title(self):
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
-    def update_table(self):
-        table = self.query_one(DataTable)
-        table.clear()
+    async def action_search_snaps(self):
+        self.get_snap_search()
+
+    def update_table(self, search_query: str | None = None):
+        self.data_table.clear()
         self.table_position_count.total = 0
         self.table_position_count.current_number = 0
-        table.set_loading(True)
-        table.add_columns(*TABLE_COLUMNS)
-        for column in table.columns:
-            table.columns[column].auto_width = True
-        # TODO: Handle errors when getting top snaps for category
+        self.data_table.set_loading(True)
+
+        # TODO: Handle errors when getting content
         try:
-            top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
+            if search_query:
+                top_snaps = snaps_api.find(
+                    query=search_query, fields=["title", "store-url", "summary"]
+                )
+            else:
+                top_snaps = get_top_snaps_from_category(
+                    snaps_api, self.current_category
+                )
         except requests.exceptions.ConnectionError:
             top_snaps = SearchResponse(results=[])
-            pass
+            raise
         self.table_position_count.total = len(top_snaps.results)
         self.table_position_count.current_number = 0
         for snap_result in top_snaps.results:
-            table.add_row(snap_result.snap.title, snap_result.snap.summary)
-        table.set_loading(False)
+            self.data_table.add_row(snap_result.snap.title, snap_result.snap.summary)
+        self.data_table.set_loading(False)
 
     def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
-        table = self.query_one(DataTable)
         self.table_position_count.current_number = (
-            table.get_row_index(row_highlighted.row_key) + 1
+            self.data_table.get_row_index(row_highlighted.row_key) + 1
         )
 
     def on_mount(self):
-        table = self.query_one(DataTable)
-        table.cursor_type = "row"
+        self.all_categories = []
+        try:
+            categories_response = snaps_api.get_categories()
+            self.all_categories: list[str] = [
+                category.name for category in categories_response.categories
+            ]
+        except requests.exceptions.ConnectionError:
+            # todo: show network error modal
+            pass
         self.update_table()
 
 
