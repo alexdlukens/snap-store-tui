@@ -20,14 +20,6 @@ snaps_api = SnapsAPI(
 ConnectionError
 TABLE_COLUMNS = ("#", "Name", "Description")
 
-try:
-    all_categories = snaps_api.get_categories()
-    all_categories: list[str] = [
-        category.name for category in all_categories.categories
-    ]
-except requests.exceptions.ConnectionError:
-    all_categories = ["featured"]
-
 
 def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
     return api.find(category=category, fields=["title", "store-url", "summary"])
@@ -40,6 +32,15 @@ class SnapStoreTUI(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.all_categories = []
+        try:
+            categories_response = snaps_api.get_categories()
+            self.all_categories: list[str] = [
+                category.name for category in categories_response.categories
+            ]
+        except requests.exceptions.ConnectionError:
+            # todo: show network error modal
+            pass
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
 
@@ -58,7 +59,7 @@ class SnapStoreTUI(App):
     async def get_updated_category(self):
         self.current_category = await self.push_screen(
             CategoryModal(
-                categories=all_categories,
+                categories=self.all_categories,
                 current_category=self.current_category,
             ),
             wait_for_dismiss=True,
