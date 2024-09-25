@@ -1,3 +1,5 @@
+import functools
+
 import requests
 
 from snap_store_tui.schemas.snaps.categories import (
@@ -16,6 +18,7 @@ class SnapsAPI:
         self, base_url: str, version: str, headers: dict[str, str] = None
     ) -> None:
         self.client = requests.Session()
+        self.client.request = functools.partial(self.client.request, timeout=5)
         self.base_url = f"{base_url}/{version}"
         if headers is not None:
             self.client.headers.update(headers)

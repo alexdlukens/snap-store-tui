@@ -1,0 +1,11 @@
+Horizontal#footer-outer {
+    height: 1;
+    dock: bottom;
+}
+Horizonal#footer-inner {
+    width: 75%;
+}
+Label#table-position-count {
+    width: 10%;
+    text-align: right;
+}
