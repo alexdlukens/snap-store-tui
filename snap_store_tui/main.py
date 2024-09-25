@@ -58,12 +58,15 @@ class SnapStoreTUI(App):
     def update_table(self):
         table = self.query_one(DataTable)
         table.clear()
+        table.set_loading(True)
         table.add_columns(*TABLE_COLUMNS)
         for column in table.columns:
             table.columns[column].auto_width = True
+        # TODO: Handle errors when getting top snaps for category
         top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
         for i, snap_result in enumerate(top_snaps.results):
             table.add_row(str(i), snap_result.snap.title, snap_result.snap.summary)
+        table.set_loading(False)
 
     def on_mount(self):
         table = self.query_one(DataTable)
