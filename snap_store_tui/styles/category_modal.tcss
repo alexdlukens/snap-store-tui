@@ -1,0 +1,9 @@
+OptionList {
+    width: 50%;
+    dock: left;
+    align: center middle;
+    opacity: 75%
+}
+ModalScreen {
+    
+}
