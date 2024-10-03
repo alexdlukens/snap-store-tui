@@ -27,7 +27,6 @@ def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
 
 
 class SnapStoreTUI(App):
-    current_category = "featured"
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("c", "choose_category", "Category"),
@@ -37,16 +36,18 @@ class SnapStoreTUI(App):
 
     def __init__(self) -> None:
         super().__init__()
+        self.current_category = "featured"
+        self.all_categories = []
+        self.data_table = DataTable()
 
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
         self.setup_data_table()
 
     def setup_data_table(self):
-        self.data_table = DataTable()
         self.data_table.add_columns(*TABLE_COLUMNS)
-        for column in self.data_table.columns:
-            self.data_table.columns[column].auto_width = True
+        for column in self.data_table.columns.values():
+            column.auto_width = True
         self.data_table.cursor_type = "row"
 
     def compose(self) -> ComposeResult:
@@ -61,7 +62,7 @@ class SnapStoreTUI(App):
         self.exit()
 
     @work
-    async def get_updated_category(self):
+    async def action_choose_category(self):
         self.current_category = await self.push_screen(
             CategoryModal(
                 categories=self.all_categories,
@@ -73,7 +74,7 @@ class SnapStoreTUI(App):
         self.update_title()
 
     @work
-    async def get_snap_search(self):
+    async def action_search_snaps(self):
         # open modal
         # get search query
         search_query: Input.Submitted = await self.push_screen(
@@ -84,15 +85,9 @@ class SnapStoreTUI(App):
         self.update_table(search_query=search_query.value)
         self.update_title()
 
-    async def action_choose_category(self):
-        # setup category modal here
-        self.get_updated_category()
-
     def update_title(self):
+        """Set title based on the current category"""
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
-
-    async def action_search_snaps(self):
-        self.get_snap_search()
 
     def update_table(self, search_query: str | None = None):
         self.data_table.clear()
@@ -116,7 +111,11 @@ class SnapStoreTUI(App):
         self.table_position_count.total = len(top_snaps.results)
         self.table_position_count.current_number = 0
         for snap_result in top_snaps.results:
-            self.data_table.add_row(snap_result.snap.title, snap_result.snap.summary)
+            self.data_table.add_row(
+                snap_result.snap.title,
+                snap_result.snap.summary,
+                key=snap_result.snap_id,
+            )
         self.data_table.set_loading(False)
 
     def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
@@ -124,8 +123,13 @@ class SnapStoreTUI(App):
             self.data_table.get_row_index(row_highlighted.row_key) + 1
         )
 
+    def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
+        snap_row_key = row_selected.row_key.value
+        print(snap_row_key)
+        snap_modal = SnapModal(snap_id=snap_row_key)
+        self.push_screen(snap_modal)
+
     def on_mount(self):
-        self.all_categories = []
         try:
             categories_response = snaps_api.get_categories()
             self.all_categories: list[str] = [
