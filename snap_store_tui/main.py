@@ -16,7 +16,7 @@ from snap_store_tui.schemas.snaps.search import SearchResponse
 snaps_api = SnapsAPI(
     base_url="https://api.snapcraft.io",
     version="v2",
-    headers={"Snap-Device-Series": "16"},
+    headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
 )
 ConnectionError
 TABLE_COLUMNS = ("Name", "Description")
@@ -114,7 +114,7 @@ class SnapStoreTUI(App):
             self.data_table.add_row(
                 snap_result.snap.title,
                 snap_result.snap.summary,
-                key=snap_result.snap_id,
+                key=snap_result.name,
             )
         self.data_table.set_loading(False)
 
@@ -126,7 +126,7 @@ class SnapStoreTUI(App):
     def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
         snap_row_key = row_selected.row_key.value
         print(snap_row_key)
-        snap_modal = SnapModal(snap_id=snap_row_key)
+        snap_modal = SnapModal(snap_name=snap_row_key, api=snaps_api)
         self.push_screen(snap_modal)
 
     def on_mount(self):

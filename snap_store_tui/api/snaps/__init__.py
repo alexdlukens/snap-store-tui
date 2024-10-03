@@ -20,8 +20,22 @@ class SnapsAPI:
         self.client = requests.Session()
         self.client.request = functools.partial(self.client.request, timeout=5)
         self.base_url = f"{base_url}/{version}"
+        self._raw_base_url = base_url
         if headers is not None:
             self.client.headers.update(headers)
+
+    def get_snap_details(self, snap_name: str, fields: list[str] | None = None):
+        query = {}
+        if fields is not None:
+            if not all(field in VALID_SEARCH_CATEGORY_FIELDS for field in fields):
+                raise ValueError(
+                    f"Invalid fields. Allowed fields: {VALID_SEARCH_CATEGORY_FIELDS}"
+                )
+            query["fields"] = ",".join(fields)
+        route = f"/api/v1/snaps/details/{snap_name}"
+        response = self.client.get(f"{self._raw_base_url}{route}", params=query)
+        response.raise_for_status()
+        return response.json()
 
     def get_categories(
         self, type: str | None = None, fields: list[str] | None = None
