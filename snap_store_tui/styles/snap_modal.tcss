@@ -1,0 +1,57 @@
+.snap-title {
+    text-style: bold;
+    text-align: center;
+    align: left middle;
+    padding: 1;
+    padding-left: 4;
+    width: auto;
+}
+
+.install-button {
+    dock: right;
+    margin-right: 1;
+    margin-top: 0;
+    height: 3;
+}
+.publisher {
+    text-style: bold;
+    text-align: center;
+    align: left middle;
+    padding: 1;
+    padding-left: 4;
+}
+.main-row {
+    # border: solid #ccc;
+}
+.description-box {
+    padding: 1;
+    border: solid #ccc;
+    width: 70%
+}
+.details-box {
+    border: solid #ccc;
+    width: 30%
+}
+.summary-row {
+    max-height: 1;
+    padding-left: 2;
+    # border: solid #ccc;
+}
+.top-row {
+    max-height: 3;
+}
+
+Horizontal {
+    # padding: 0;
+    # margin: 1;
+    # height: auto;
+}
+
+Vertical {
+    # keyline: thin green;
+}
+
+Screen {
+    # height: auto;
+    keyline: thin green;
+}
