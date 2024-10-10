@@ -1,4 +1,3 @@
-import json
 import tempfile
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from snap_store_tui.api.snaps import SnapsAPI
 from snap_store_tui.schemas.snaps.search import SnapDetails
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
+PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
 
 
 class SnapModal(ModalScreen):
@@ -36,14 +36,14 @@ class SnapModal(ModalScreen):
             pass
 
     def download_icon(self):
-        # download image using icon_url
+        """download icon for snap using icon_url and create a Pixels object"""
         icon_url = self.snap.icon_url
         if not icon_url:
-            icon_url = "https://placehold.co/64/white/black/png?text=?&font=roboto"
+            icon_url = PLACEHOLDER_ICON_URL
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             icon_path = Path(f.name)
-            icon_path.write_bytes(requests.get(icon_url).content)
+            icon_path.write_bytes(requests.get(icon_url, timeout=5).content)
             self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
 
     def compose(self):
@@ -58,7 +58,8 @@ class SnapModal(ModalScreen):
                 classes="title-container",
             ),
             Vertical(
-                Button("Install", classes="install-button"), classes="button-container"
+                Button("Install/Modify", classes="install-button"),
+                classes="button-container",
             ),
             classes="top-row",
         )
