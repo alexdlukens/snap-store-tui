@@ -4,7 +4,6 @@
     align: left middle;
     padding: 1;
     padding-left: 4;
-    width: auto;
 }
 
 .install-button {
@@ -13,15 +12,13 @@
     margin-top: 0;
     height: 3;
 }
-.publisher {
-    text-style: bold;
-    text-align: center;
-    align: left middle;
-    padding: 1;
-    padding-left: 4;
+
+.title-container {
+    width: 75%;
 }
-.main-row {
-    # border: solid #ccc;
+
+.button-container {
+    width: 25%;
 }
 .description-box {
     padding: 1;
@@ -30,28 +27,25 @@
 }
 .details-box {
     border: solid #ccc;
-    width: 30%
+    width: 30%;
+    min-width: 16;
+}
+.centered {
+    content-align: center middle;
 }
 .summary-row {
     max-height: 1;
     padding-left: 2;
-    # border: solid #ccc;
+    text-style: italic;
 }
 .top-row {
     max-height: 3;
+    keyline: thin green;
 }
-
-Horizontal {
-    # padding: 0;
-    # margin: 1;
-    # height: auto;
-}
-
-Vertical {
-    # keyline: thin green;
+.main-row {
 }
 
 Screen {
-    # height: auto;
-    keyline: thin green;
+    layers: below above;
+    background: $background;
 }

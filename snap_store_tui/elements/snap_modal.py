@@ -1,9 +1,12 @@
 import json
+import tempfile
 from pathlib import Path
 
+import requests
+from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Header, Label, TextArea
+from textual.widgets import Button, Footer, Label, Static, TextArea
 
 from snap_store_tui.api.snaps import SnapsAPI
 from snap_store_tui.schemas.snaps.search import SnapDetails
@@ -25,6 +28,24 @@ class SnapModal(ModalScreen):
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
 
+        self.icon_obj = Static()
+        try:
+            self.download_icon()
+        except Exception:
+            # download fails for some reason
+            pass
+
+    def download_icon(self):
+        # download image using icon_url
+        icon_url = self.snap.icon_url
+        if not icon_url:
+            icon_url = "https://placehold.co/64/white/black/png?text=?&font=roboto"
+        self.icon_obj = None
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            icon_path = Path(f.name)
+            icon_path.write_bytes(requests.get(icon_url).content)
+            self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
+
     def compose(self):
         yield Horizontal(
             Vertical(
@@ -33,10 +54,11 @@ class SnapModal(ModalScreen):
                     Label(" | "),
                     Label(self.snap.publisher),
                     classes="snap-title",
-                )
+                ),
+                classes="title-container",
             ),
             Vertical(
-                Button("Install", classes="install-button"),
+                Button("Install", classes="install-button"), classes="button-container"
             ),
             classes="top-row",
         )
@@ -51,6 +73,7 @@ class SnapModal(ModalScreen):
                 classes="description-box",
             ),  # description
             Vertical(
+                Static(self.icon_obj, classes="centered"),
                 TextArea(
                     f"License: {self.snap.license}", disabled=True, soft_wrap=True
                 ),
