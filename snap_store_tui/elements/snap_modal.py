@@ -8,6 +8,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
 
 from snap_store_tui.api.snaps import SnapsAPI
+from snap_store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
 from snap_store_tui.schemas.snaps.search import SnapDetails
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
@@ -22,8 +23,10 @@ class SnapModal(ModalScreen):
         super().__init__()
         self.snap_name = snap_name
         self.api = api
-        self.snap = self.api.get_snap_details(snap_name=self.snap_name)
-        self.snap = SnapDetails.model_validate(self.snap)
+        self.snap_info = self.api.get_snap_info(
+            snap_name=self.snap_name, fields=VALID_SNAP_INFO_FIELDS
+        )
+        self.snap = self.snap_info.snap
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
@@ -37,8 +40,9 @@ class SnapModal(ModalScreen):
 
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
-        icon_url = self.snap.icon_url
-        if not icon_url:
+        if self.snap.media:
+            icon_url = self.snap.media[0].url
+        else:
             icon_url = PLACEHOLDER_ICON_URL
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
@@ -52,7 +56,7 @@ class SnapModal(ModalScreen):
                 Horizontal(
                     Label(self.snap.title),
                     Label(" | "),
-                    Label(self.snap.publisher),
+                    Label(self.snap.publisher.display_name),
                     classes="snap-title",
                 ),
                 classes="title-container",
@@ -76,7 +80,9 @@ class SnapModal(ModalScreen):
             Vertical(
                 Static(self.icon_obj, classes="centered"),
                 TextArea(
-                    f"License: {self.snap.license}", disabled=True, soft_wrap=True
+                    f"License: {self.snap.license or 'unset'}",
+                    disabled=True,
+                    soft_wrap=True,
                 ),
                 classes="details-box",
             ),  # right side
