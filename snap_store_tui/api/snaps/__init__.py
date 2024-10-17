@@ -7,6 +7,7 @@ from snap_store_tui.schemas.snaps.categories import (
     CategoryResponse,
     SingleCategoryResponse,
 )
+from snap_store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS, InfoResponse
 from snap_store_tui.schemas.snaps.search import (
     VALID_SEARCH_CATEGORY_FIELDS,
     SearchResponse,
@@ -36,6 +37,19 @@ class SnapsAPI:
         response = self.client.get(f"{self._raw_base_url}{route}", params=query)
         response.raise_for_status()
         return response.json()
+
+    def get_snap_info(self, snap_name: str, fields: list[str] | None = None):
+        query = {}
+        if fields is not None:
+            if not all(field in VALID_SNAP_INFO_FIELDS for field in fields):
+                raise ValueError(
+                    f"Invalid fields. Allowed fields: {VALID_SNAP_INFO_FIELDS}"
+                )
+            query["fields"] = ",".join(fields)
+        route = f"/v2/snaps/info/{snap_name}"
+        response = self.client.get(f"{self._raw_base_url}{route}", params=query)
+        response.raise_for_status()
+        return InfoResponse.model_validate_json(response.content)
 
     def get_categories(
         self, type: str | None = None, fields: list[str] | None = None

@@ -1,3 +1,4 @@
+import pathlib
 from unittest.mock import MagicMock
 
 import pytest
@@ -9,6 +10,7 @@ from snap_store_tui.schemas.snaps.categories import (
     CategoryResponse,
     SingleCategoryResponse,
 )
+from snap_store_tui.schemas.snaps.info import InfoResponse
 
 
 @pytest.fixture(scope="function")
@@ -47,3 +49,20 @@ def test_get_categories_fail_500(setup_snaps_api: SnapsAPI):
         pytest.fail("Expected HTTPError")
     except HTTPError:
         pass
+
+
+def test_get_snap_info_success(setup_snaps_api: SnapsAPI):
+    SNAP_INFO_RESPONSE_SUCCESS_DATA_FILE = (
+        pathlib.Path(__file__).parent / "data" / "snap_info_response_success.json"
+    )
+
+    setup_snaps_api.client.get = MagicMock()
+    setup_snaps_api.client.get.return_value.status_code = 200
+    with open(SNAP_INFO_RESPONSE_SUCCESS_DATA_FILE, "rb") as f:
+        setup_snaps_api.client.get.return_value.content = f.read()
+
+    try:
+        response = setup_snaps_api.get_snap_info("py-rand-tool")
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+    assert isinstance(response, InfoResponse)

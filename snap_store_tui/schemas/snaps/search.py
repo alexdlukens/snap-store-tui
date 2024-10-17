@@ -62,10 +62,16 @@ class Revision(BaseModel):
 class Publisher(BaseModel):
     model_config = ConfigDict(extra="forbid", exclude_unset=True)
 
-    display_name: str = Field(..., alias="display-name")
-    id: str
-    username: str
-    validation: Optional[str] = None
+    display_name: str = Field(
+        ...,
+        alias="display-name",
+        description="Display name corresponding to the publisher.",
+    )
+    id: str = Field(..., description="The publisher id.")
+    username: str = Field(..., description="Username belonging to the publisher.")
+    validation: Optional[str] = Field(
+        None, description="Indicates if the account has been validated."
+    )
 
 
 class Snap(BaseModel):
@@ -74,15 +80,20 @@ class Snap(BaseModel):
     categories: Optional[List[Category]] = None
     contact: Optional[str] = None
     description: Optional[str] = None
+    gated_snap_ids: Optional[List[str]] = Field(None, alias="gated-snap-ids")
     license: Optional[str] = None
     links: Optional[Dict[str, Any]] = None
     media: Optional[List[Media]] = None
+    name: Optional[str] = None
     prices: Optional[Dict[str, Any]] = None
     private: Optional[bool] = None
-    publisher: Optional[Publisher] = None
+    publisher: Optional[Publisher] = Field(None, description="The publisher.")
+    snap_id: Optional[str] = Field(None, alias="snap-id")
     store_url: Optional[str] = Field(None, alias="store-url")
     summary: Optional[str] = None
     title: Optional[str] = None
+    trending: Optional[bool] = None
+    unlisted: Optional[bool] = None
     website: Optional[str] = None
 
 
