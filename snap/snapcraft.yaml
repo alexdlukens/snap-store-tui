@@ -45,3 +45,8 @@ apps:
   store-tui:
     command: .venv/bin/python3 store_tui/main.py
     plugs: [network, network-bind]
+
+platforms:
+  amd64:
+  arm64:
+  armhf:
