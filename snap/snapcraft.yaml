@@ -20,7 +20,7 @@ contact: alexdlukens@gmail.com
 license: MIT
 website: https://github.com/alexdlukens/snap-store-tui
 grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: strict # use 'strict' once you have the right plugs and slots
 
 parts:
   store_tui:
@@ -33,18 +33,17 @@ parts:
       poetry config virtualenvs.in-project true
       poetry install
       # copy virtualenv and store_tui dir to install dir
-      cp -r $CRAFT_PART_BUILD/.venv $CRAFT_PART_INSTALL/
+      cp -a -r $CRAFT_PART_BUILD/.venv/. $CRAFT_PART_INSTALL/
       cp -r $CRAFT_PART_BUILD/store_tui/ $CRAFT_PART_INSTALL/
-      craftctl default
-    override-stage: |
-      # copy virtualenv and store_tui dir to prime dir
-      cp -r $CRAFT_PART_INSTALL/.venv $CRAFT_PRIME/
-      cp -r $CRAFT_PART_INSTALL/store_tui/ $CRAFT_PRIME/
+      cp $CRAFT_PART_BUILD/pyproject.toml $CRAFT_PART_INSTALL/
+      chmod a+x $CRAFT_PART_INSTALL/store_tui/main.py
       craftctl default
 apps:
   store-tui:
-    command: .venv/bin/python3 store_tui/main.py
+    command: bin/python3 $SNAP/store_tui/main.py
     plugs: [network, network-bind]
+    environment:
+      PYTHONPATH: $PYTHONPATH:$SNAP
 
 platforms:
   amd64:
