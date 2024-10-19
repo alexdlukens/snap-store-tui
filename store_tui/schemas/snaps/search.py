@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
-from snap_store_tui.schemas.snaps.categories import Category, Media
+from store_tui.schemas.snaps.categories import Category, Media
 
 VALID_SEARCH_CATEGORY_FIELDS = [
     "base",

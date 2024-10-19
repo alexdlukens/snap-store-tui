@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from snap_store_tui.schemas.snaps.search import Snap
+from store_tui.schemas.snaps.search import Snap
 
 VALID_SNAP_INFO_FIELDS = [
     "architectures",

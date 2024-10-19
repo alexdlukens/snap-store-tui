@@ -6,12 +6,12 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import DataTable, Footer, Header, Input
 
-from snap_store_tui.api.snaps import SnapsAPI
-from snap_store_tui.elements.category_modal import CategoryModal
-from snap_store_tui.elements.position_count import PositionCount
-from snap_store_tui.elements.search_modal import SnapSearchModal
-from snap_store_tui.elements.snap_modal import SnapModal
-from snap_store_tui.schemas.snaps.search import SearchResponse
+from store_tui.api.snaps import SnapsAPI
+from store_tui.elements.category_modal import CategoryModal
+from store_tui.elements.position_count import PositionCount
+from store_tui.elements.search_modal import SnapSearchModal
+from store_tui.elements.snap_modal import SnapModal
+from store_tui.schemas.snaps.search import SearchResponse
 
 snaps_api = SnapsAPI(
     base_url="https://api.snapcraft.io",

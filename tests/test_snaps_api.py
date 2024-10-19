@@ -5,12 +5,12 @@ import pytest
 from requests import Response
 from requests.exceptions import HTTPError
 
-from snap_store_tui.api.snaps import SnapsAPI
-from snap_store_tui.schemas.snaps.categories import (
+from store_tui.api.snaps import SnapsAPI
+from store_tui.schemas.snaps.categories import (
     CategoryResponse,
     SingleCategoryResponse,
 )
-from snap_store_tui.schemas.snaps.info import InfoResponse
+from store_tui.schemas.snaps.info import InfoResponse
 
 
 @pytest.fixture(scope="function")

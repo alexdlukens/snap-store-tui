@@ -2,13 +2,13 @@ import functools
 
 import requests
 
-from snap_store_tui.schemas.snaps.categories import (
+from store_tui.schemas.snaps.categories import (
     VALID_CATEGORY_FIELDS,
     CategoryResponse,
     SingleCategoryResponse,
 )
-from snap_store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS, InfoResponse
-from snap_store_tui.schemas.snaps.search import (
+from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS, InfoResponse
+from store_tui.schemas.snaps.search import (
     VALID_SEARCH_CATEGORY_FIELDS,
     SearchResponse,
 )

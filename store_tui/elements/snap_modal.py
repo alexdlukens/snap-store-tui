@@ -6,11 +6,11 @@ import requests
 from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Label, Markdown, Static, TextArea
+from textual.widgets import Button, Footer, Label, Static, TextArea
 
-from snap_store_tui.api.snaps import SnapsAPI
-from snap_store_tui.elements.clickable_link import ClickableLink
-from snap_store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
+from store_tui.api.snaps import SnapsAPI
+from store_tui.elements.clickable_link import ClickableLink
+from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
