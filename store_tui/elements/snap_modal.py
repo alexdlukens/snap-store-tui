@@ -2,6 +2,7 @@ import datetime
 import tempfile
 from pathlib import Path
 
+import humanize
 import requests
 from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -65,7 +66,7 @@ class SnapModal(ModalScreen):
                     )
         if last_modified_date is None:
             return "Unknown"
-        return last_modified_date.strftime("%Y-%m-%d")
+        return humanize.naturaltime(last_modified_date)
 
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
