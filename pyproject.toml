@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "snap-store-tui"
+name = "store-tui"
 version = "0.1.0"
 description = ""
 authors = ["Alexander Lukens <alexdlukens@gmail.com>"]
