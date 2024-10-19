@@ -119,6 +119,12 @@ class SnapModal(ModalScreen):
                     classes="details-item link",
                     shrink=True,
                 ),
+                ClickableLink(
+                    text="App Center Page",
+                    url=f"snap://{self.snap_name}",
+                    classes="details-item link",
+                    shrink=True,
+                ),
                 Label(
                     f"Last Updated: {self.get_last_modified_date()}",
                     classes="details-item",

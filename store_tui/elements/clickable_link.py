@@ -14,4 +14,9 @@ class ClickableLink(Label):
     def on_link_clicked(self):
         # trigger system url handler
         # webbrowser.open(self.url, new=2)
-        subprocess.run(["xdg-open", self.url], check=False)
+        subprocess.run(
+            ["xdg-open", self.url],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
