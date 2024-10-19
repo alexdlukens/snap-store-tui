@@ -22,6 +22,7 @@ website: https://github.com/alexdlukens/snap-store-tui
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict # use 'strict' once you have the right plugs and slots
 
+
 parts:
   store_tui:
     plugin: nil
@@ -41,7 +42,7 @@ parts:
 apps:
   store-tui:
     command: bin/python3 $SNAP/store_tui/main.py
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, desktop]
     environment:
       PYTHONPATH: $PYTHONPATH:$SNAP
 

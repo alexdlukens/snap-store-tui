@@ -1,4 +1,4 @@
-import webbrowser
+import subprocess
 
 from textual import on
 from textual.events import Click
@@ -13,4 +13,5 @@ class ClickableLink(Label):
     @on(Click)
     def on_link_clicked(self):
         # trigger system url handler
-        webbrowser.open(self.url, new=2)
+        # webbrowser.open(self.url, new=2)
+        subprocess.run(["xdg-open", self.url], check=False)
