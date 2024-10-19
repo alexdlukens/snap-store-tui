@@ -2,7 +2,7 @@ import webbrowser
 
 from textual import on
 from textual.events import Click
-from textual.widgets import Label, Static
+from textual.widgets import Label
 
 
 class ClickableLink(Label):

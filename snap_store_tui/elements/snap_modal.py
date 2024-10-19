@@ -97,7 +97,7 @@ class SnapModal(ModalScreen):
                 ClickableLink(
                     text="Store Page",
                     url=self.snap.store_url,
-                    classes="details-item",
+                    classes="details-item link",
                     shrink=True,
                 ),
                 Label(

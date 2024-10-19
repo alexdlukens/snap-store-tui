@@ -55,6 +55,15 @@
     padding-bottom: 1;
 }
 
+.link {
+    text-style: underline bold;
+    color: $primary;
+}
+
+.link:hover {
+    background: $accent;
+}
+
 Screen {
     layers: below above;
     background: $background;
