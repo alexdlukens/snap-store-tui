@@ -9,7 +9,7 @@ repos:
         pass_filenames: true
       - id: ruff-import-sort
         name: ruff-import-sort
-        entry: './.venv/bin/ruff check --fix --select I'
+        entry: './.venv/bin/ruff check --fix --select I --select F401'
         language: script
         types: [python]
         pass_filenames: true
