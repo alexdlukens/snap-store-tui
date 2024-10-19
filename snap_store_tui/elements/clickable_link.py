@@ -1,21 +1,14 @@
 import webbrowser
 
-from rich.markdown import Link
 from textual import on
 from textual.events import Click
-from textual.widget import Widget
-from textual.widgets import Label, Markdown
+from textual.widgets import Label, Static
 
 
-class ClickableLink(Widget):
+class ClickableLink(Label):
     def __init__(self, text: str, url: str, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.text = text
+        super().__init__(text, *args, **kwargs)
         self.url = url
-        # self.content = Link(self.text, self.url)
-
-    def compose(self):
-        yield Label(self.text)
 
     @on(Click)
     def on_link_clicked(self):

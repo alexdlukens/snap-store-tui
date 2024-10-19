@@ -38,6 +38,16 @@ class SnapModal(ModalScreen):
             # download fails for some reason
             pass
 
+        self.supported_architectures = self.get_architectures()
+
+    def get_architectures(self) -> list[str]:
+        architectures = set()
+        for channel in self.snap_info.channel_map:
+            if not channel.architectures:
+                continue
+            architectures.update(channel.architectures)
+        return sorted(architectures)
+
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
         if self.snap.media:
@@ -80,10 +90,20 @@ class SnapModal(ModalScreen):
             Vertical(
                 Static(self.icon_obj, classes="centered snap-icon"),
                 Label(
-                    f"License: {self.snap.license or 'unset'}", classes="details-item"
+                    f"License: {self.snap.license or 'unset'}",
+                    classes="details-item",
+                    shrink=True,
                 ),
                 ClickableLink(
-                    text="Store Page", url=self.snap.store_url, classes="details-item"
+                    text="Store Page",
+                    url=self.snap.store_url,
+                    classes="details-item",
+                    shrink=True,
+                ),
+                Label(
+                    f"Architectures: {", ".join(self.supported_architectures)}",
+                    classes="details-item",
+                    shrink=True,
                 ),
                 classes="details-box",
             ),  # right side
