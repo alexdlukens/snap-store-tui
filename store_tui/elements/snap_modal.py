@@ -4,7 +4,7 @@ from pathlib import Path
 
 import requests
 from rich_pixels import Pixels
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
 
@@ -106,7 +106,7 @@ class SnapModal(ModalScreen):
                 TextArea(self.snap.description, read_only=True),
                 classes="description-box",
             ),  # description
-            Vertical(
+            VerticalScroll(
                 Static(self.icon_obj, classes="centered snap-icon"),
                 Label(
                     f"License: {self.snap.license or 'unset'}",
