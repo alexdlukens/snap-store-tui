@@ -1,3 +1,4 @@
+import datetime
 import tempfile
 from pathlib import Path
 
@@ -47,6 +48,24 @@ class SnapModal(ModalScreen):
                 continue
             architectures.update(channel.architectures)
         return sorted(architectures)
+
+    def get_last_modified_date(self) -> str:
+        # get the most recent date from all channels
+        last_modified_date = None
+        for channel in self.snap_info.channel_map:
+            if channel.created_at is not None:
+                if last_modified_date is None:
+                    last_modified_date = datetime.datetime.fromisoformat(
+                        channel.created_at
+                    )
+                else:
+                    last_modified_date = max(
+                        last_modified_date,
+                        datetime.datetime.fromisoformat(channel.created_at),
+                    )
+        if last_modified_date is None:
+            return "Unknown"
+        return last_modified_date.strftime("%Y-%m-%d")
 
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
@@ -98,6 +117,11 @@ class SnapModal(ModalScreen):
                     text="Store Page",
                     url=self.snap.store_url,
                     classes="details-item link",
+                    shrink=True,
+                ),
+                Label(
+                    f"Last Updated: {self.get_last_modified_date()}",
+                    classes="details-item",
                     shrink=True,
                 ),
                 Label(
