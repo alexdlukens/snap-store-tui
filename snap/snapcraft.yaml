@@ -42,6 +42,6 @@ parts:
       cp -r $CRAFT_PART_INSTALL/store_tui/ $CRAFT_PRIME/
       craftctl default
 apps:
-  stui:
+  store-tui:
     command: .venv/bin/python3 store_tui/main.py
     plugs: [network, network-bind]
