@@ -29,6 +29,7 @@
     border: solid #ccc;
     width: 30%;
     min-width: 16;
+    padding: 1;
 }
 .centered {
     content-align: center middle;
@@ -40,9 +41,19 @@
 }
 .top-row {
     max-height: 3;
-    keyline: thin green;
 }
 .main-row {
+}
+
+.details-item {
+    # padding: 1;
+    padding-left: 2;
+    padding-right: 2;
+    text-style: bold;
+}
+
+.snap-icon {
+    padding-bottom: 1;
 }
 
 Screen {

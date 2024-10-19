@@ -5,11 +5,11 @@ import requests
 from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Label, Static, TextArea
+from textual.widgets import Button, Footer, Label, Markdown, Static, TextArea
 
 from snap_store_tui.api.snaps import SnapsAPI
+from snap_store_tui.elements.clickable_link import ClickableLink
 from snap_store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
-from snap_store_tui.schemas.snaps.search import SnapDetails
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
@@ -78,11 +78,12 @@ class SnapModal(ModalScreen):
                 classes="description-box",
             ),  # description
             Vertical(
-                Static(self.icon_obj, classes="centered"),
-                TextArea(
-                    f"License: {self.snap.license or 'unset'}",
-                    disabled=True,
-                    soft_wrap=True,
+                Static(self.icon_obj, classes="centered snap-icon"),
+                Label(
+                    f"License: {self.snap.license or 'unset'}", classes="details-item"
+                ),
+                ClickableLink(
+                    text="Store Page", url=self.snap.store_url, classes="details-item"
                 ),
                 classes="details-box",
             ),  # right side
