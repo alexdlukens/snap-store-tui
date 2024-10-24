@@ -10,6 +10,7 @@ from textual.widgets import DataTable, Footer, Header, Input
 
 from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.category_modal import CategoryModal
+from store_tui.elements.error_modal import ErrorModal
 from store_tui.elements.position_count import PositionCount
 from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
@@ -125,8 +126,14 @@ class SnapStoreTUI(App):
             snap_info = await retry_get_snap_info(
                 snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
             )
+        except Exception as e:
+            self.push_screen(ErrorModal(e, error_title="Error - retrieving snap info"))
+            snap_info = None
         finally:
             self.data_table.loading = False
+
+        if snap_info is None:
+            return
         snap_modal = SnapModal(
             snap_name=snap_row_key, api=snaps_api, snap_info=snap_info
         )
