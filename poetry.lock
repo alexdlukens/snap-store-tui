@@ -2083,17 +2083,6 @@ files = [
 test = ["coverage", "pytest", "pytest-cov"]
 
 [[package]]
-name = "universalasync"
-version = "0.3.1.2"
-description = "A library to help automate the creation of universal python libraries"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "universalasync-0.3.1.2-py3-none-any.whl", hash = "sha256:5324996827402e1b509ca200b324615cb0b50f1f82f11afaf538533355a34d45"},
-    {file = "universalasync-0.3.1.2.tar.gz", hash = "sha256:72271f3b35bc3bd6e72cab125d2cf19f178386c66d3c47e39bc2ddc4de974f6c"},
-]
-
-[[package]]
 name = "urllib3"
 version = "2.2.3"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -2229,4 +2218,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e9152f0d2004ed95d0830c99fe82d370d1172c0a6c8f1595a97b5130113f4eaf"
+content-hash = "ad7cfc31651589dca471353e748f1e9b0a2207a7148cc05e393bd85bb422ebf3"
