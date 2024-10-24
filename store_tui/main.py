@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import requests.exceptions
-from textual import work
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import DataTable, Footer, Header, Input
@@ -12,6 +12,7 @@ from store_tui.elements.category_modal import CategoryModal
 from store_tui.elements.position_count import PositionCount
 from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
+from store_tui.elements.snap_result_table import SnapResultTable
 from store_tui.schemas.snaps.categories import CategoryResponse
 from store_tui.schemas.snaps.search import SearchResponse
 
@@ -26,7 +27,7 @@ ConnectionError
 TABLE_COLUMNS = ("Name", "Description")
 
 
-def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
+async def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
     return api.find(category=category, fields=["title", "store-url", "summary"])
 
 
@@ -42,17 +43,12 @@ class SnapStoreTUI(App):
         super().__init__()
         self.current_category = "featured"
         self.all_categories = []
-        self.data_table = DataTable()
 
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
-        self.setup_data_table()
-
-    def setup_data_table(self):
-        self.data_table.add_columns(*TABLE_COLUMNS)
-        for column in self.data_table.columns.values():
-            column.auto_width = True
-        self.data_table.cursor_type = "row"
+        self.data_table = SnapResultTable(
+            table_position_count=self.table_position_count, table_columns=TABLE_COLUMNS
+        )
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -75,7 +71,7 @@ class SnapStoreTUI(App):
             wait_for_dismiss=True,
         )
         top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
-        self.update_table(top_snaps=top_snaps)
+        await self.data_table.update_table(top_snaps=top_snaps)
         self.update_title()
 
     @work
@@ -90,41 +86,14 @@ class SnapStoreTUI(App):
         top_snaps = snaps_api.find(
             query=search_query.value, fields=["title", "store-url", "summary"]
         )
-        self.update_table(top_snaps=top_snaps)
+        await self.data_table.update_table(top_snaps=top_snaps)
         self.update_title()
 
     def update_title(self):
         """Set title based on the current category"""
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
-    def update_table(self, top_snaps: SearchResponse):
-        self.data_table.clear()
-        self.table_position_count.total = 0
-        self.table_position_count.current_number = 0
-        self.data_table.set_loading(True)
-
-        self.table_position_count.total = len(top_snaps.results)
-        self.table_position_count.current_number = 0
-        for snap_result in top_snaps.results:
-            self.data_table.add_row(
-                snap_result.snap.title,
-                snap_result.snap.summary,
-                key=snap_result.name,
-            )
-        self.data_table.set_loading(False)
-
-    def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
-        self.table_position_count.current_number = (
-            self.data_table.get_row_index(row_highlighted.row_key) + 1
-        )
-
-    def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
-        snap_row_key = row_selected.row_key.value
-        print(snap_row_key)
-        snap_modal = SnapModal(snap_name=snap_row_key, api=snaps_api)
-        self.push_screen(snap_modal)
-
-    def on_mount(self):
+    async def on_mount(self):
         try:
             categories_response = snaps_api.get_categories()
             self.all_categories: list[str] = [
@@ -137,7 +106,13 @@ class SnapStoreTUI(App):
             self.all_categories = []
             top_snaps = SearchResponse(results=[])
             pass
-        self.update_table(top_snaps=top_snaps)
+        await self.data_table.update_table(top_snaps=top_snaps)
+
+    @on(DataTable.RowSelected)
+    def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
+        snap_row_key = row_selected.row_key.value
+        snap_modal = SnapModal(snap_name=snap_row_key, api=snaps_api)
+        self.push_screen(snap_modal)
 
 
 if __name__ == "__main__":
