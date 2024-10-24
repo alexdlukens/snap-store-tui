@@ -11,7 +11,7 @@ from textual.widgets import Button, Footer, Label, Static, TextArea
 
 from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
-from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
+from store_tui.schemas.snaps.info import InfoResponse
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
@@ -21,13 +21,11 @@ class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
     BINDINGS = {("q", "dismiss", "Close")}
 
-    def __init__(self, snap_name: str, api: SnapsAPI) -> None:
+    def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
         super().__init__()
         self.snap_name = snap_name
         self.api = api
-        self.snap_info = self.api.get_snap_info(
-            snap_name=self.snap_name, fields=VALID_SNAP_INFO_FIELDS
-        )
+        self.snap_info = snap_info
         self.snap = self.snap_info.snap
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")

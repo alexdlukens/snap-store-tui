@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import requests.exceptions
+import retry
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
@@ -14,6 +15,7 @@ from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
 from store_tui.elements.snap_result_table import SnapResultTable
 from store_tui.schemas.snaps.categories import CategoryResponse
+from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
 from store_tui.schemas.snaps.search import SearchResponse
 
 logger = logging.getLogger(__name__)
@@ -28,7 +30,12 @@ TABLE_COLUMNS = ("Name", "Description")
 
 
 async def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
-    return api.find(category=category, fields=["title", "store-url", "summary"])
+    return await api.find(category=category, fields=["title", "store-url", "summary"])
+
+
+@retry.retry(Exception, tries=3, delay=2, backoff=2)
+async def retry_get_snap_info(snap_name: str, fields: list[str]):
+    return await snaps_api.get_snap_info(snap_name=snap_name, fields=fields)
 
 
 class SnapStoreTUI(App):
@@ -94,8 +101,9 @@ class SnapStoreTUI(App):
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
     async def on_mount(self):
+        self.loading = True
         try:
-            categories_response = snaps_api.get_categories()
+            categories_response = await snaps_api.get_categories()
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
             ]
@@ -106,12 +114,22 @@ class SnapStoreTUI(App):
             self.all_categories = []
             top_snaps = SearchResponse(results=[])
             pass
+        self.loading = False
         await self.data_table.update_table(top_snaps=top_snaps)
 
     @on(DataTable.RowSelected)
-    def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
+    async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
         snap_row_key = row_selected.row_key.value
-        snap_modal = SnapModal(snap_name=snap_row_key, api=snaps_api)
+        try:
+            self.data_table.loading = True
+            snap_info = await retry_get_snap_info(
+                snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
+            )
+        finally:
+            self.data_table.loading = False
+        snap_modal = SnapModal(
+            snap_name=snap_row_key, api=snaps_api, snap_info=snap_info
+        )
         self.push_screen(snap_modal)
 
 

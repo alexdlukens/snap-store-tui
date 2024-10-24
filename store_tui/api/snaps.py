@@ -1,6 +1,6 @@
 import functools
 
-import requests
+from httpx import AsyncClient
 
 from store_tui.schemas.snaps.categories import (
     VALID_CATEGORY_FIELDS,
@@ -18,14 +18,14 @@ class SnapsAPI:
     def __init__(
         self, base_url: str, version: str, headers: dict[str, str] = None
     ) -> None:
-        self.client = requests.Session()
+        self.client = AsyncClient()
         self.client.request = functools.partial(self.client.request, timeout=5)
         self.base_url = f"{base_url}/{version}"
         self._raw_base_url = base_url
         if headers is not None:
             self.client.headers.update(headers)
 
-    def get_snap_details(self, snap_name: str, fields: list[str] | None = None):
+    async def get_snap_details(self, snap_name: str, fields: list[str] | None = None):
         query = {}
         if fields is not None:
             if not all(field in VALID_SEARCH_CATEGORY_FIELDS for field in fields):
@@ -38,7 +38,7 @@ class SnapsAPI:
         response.raise_for_status()
         return response.json()
 
-    def get_snap_info(self, snap_name: str, fields: list[str] | None = None):
+    async def get_snap_info(self, snap_name: str, fields: list[str] | None = None):
         query = {}
         if fields is not None:
             if not all(field in VALID_SNAP_INFO_FIELDS for field in fields):
@@ -47,11 +47,11 @@ class SnapsAPI:
                 )
             query["fields"] = ",".join(fields)
         route = f"/v2/snaps/info/{snap_name}"
-        response = self.client.get(f"{self._raw_base_url}{route}", params=query)
+        response = await self.client.get(f"{self._raw_base_url}{route}", params=query)
         response.raise_for_status()
         return InfoResponse.model_validate_json(response.content)
 
-    def get_categories(
+    async def get_categories(
         self, type: str | None = None, fields: list[str] | None = None
     ) -> CategoryResponse:
         query = {}
@@ -64,11 +64,11 @@ class SnapsAPI:
         if type is not None:
             query["type"] = type
         route = "/snaps/categories"
-        response = self.client.get(f"{self.base_url}{route}", params=query)
+        response = await self.client.get(f"{self.base_url}{route}", params=query)
         response.raise_for_status()
         return CategoryResponse.model_validate_json(response.content)
 
-    def get_category_by_name(
+    async def get_category_by_name(
         self, name: str, fields: list[str] | None = None
     ) -> SingleCategoryResponse:
         query = {}
@@ -80,11 +80,11 @@ class SnapsAPI:
             query["fields"] = ",".join(fields)
 
         route = f"/snaps/category/{name}"
-        response = self.client.get(f"{self.base_url}{route}", params=query)
+        response = await self.client.get(f"{self.base_url}{route}", params=query)
         response.raise_for_status()
         return SingleCategoryResponse.model_validate_json(response.content)
 
-    def find(
+    async def find(
         self,
         query: str | None = None,
         fields: str | None = None,
@@ -135,7 +135,7 @@ class SnapsAPI:
             if key in query_dict:
                 query_dict[key] = str(query_dict[key]).lower()
 
-        response = self.client.get(
+        response = await self.client.get(
             f"{self.base_url}{route}", params=query_dict, headers=extra_headers
         )
         response.raise_for_status()
