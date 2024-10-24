@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import requests.exceptions
@@ -11,7 +12,10 @@ from store_tui.elements.category_modal import CategoryModal
 from store_tui.elements.position_count import PositionCount
 from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
+from store_tui.schemas.snaps.categories import CategoryResponse
 from store_tui.schemas.snaps.search import SearchResponse
+
+logger = logging.getLogger(__name__)
 
 snaps_api = SnapsAPI(
     base_url="https://api.snapcraft.io",
@@ -70,7 +74,8 @@ class SnapStoreTUI(App):
             ),
             wait_for_dismiss=True,
         )
-        self.update_table()
+        top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
+        self.update_table(top_snaps=top_snaps)
         self.update_title()
 
     @work
@@ -82,32 +87,22 @@ class SnapStoreTUI(App):
         )
         self.current_category = "Search"
         # send to update table to use "find" method
-        self.update_table(search_query=search_query.value)
+        top_snaps = snaps_api.find(
+            query=search_query.value, fields=["title", "store-url", "summary"]
+        )
+        self.update_table(top_snaps=top_snaps)
         self.update_title()
 
     def update_title(self):
         """Set title based on the current category"""
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
-    def update_table(self, search_query: str | None = None):
+    def update_table(self, top_snaps: SearchResponse):
         self.data_table.clear()
         self.table_position_count.total = 0
         self.table_position_count.current_number = 0
         self.data_table.set_loading(True)
 
-        # TODO: Handle errors when getting content
-        try:
-            if search_query:
-                top_snaps = snaps_api.find(
-                    query=search_query, fields=["title", "store-url", "summary"]
-                )
-            else:
-                top_snaps = get_top_snaps_from_category(
-                    snaps_api, self.current_category
-                )
-        except requests.exceptions.ConnectionError:
-            top_snaps = SearchResponse(results=[])
-            raise
         self.table_position_count.total = len(top_snaps.results)
         self.table_position_count.current_number = 0
         for snap_result in top_snaps.results:
@@ -135,10 +130,14 @@ class SnapStoreTUI(App):
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
             ]
+            top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
         except requests.exceptions.ConnectionError:
-            # todo: show network error modal
+            logger.exception("Error getting categories or top snaps")
+            categories_response = CategoryResponse(categories=[])
+            self.all_categories = []
+            top_snaps = SearchResponse(results=[])
             pass
-        self.update_table()
+        self.update_table(top_snaps=top_snaps)
 
 
 if __name__ == "__main__":
