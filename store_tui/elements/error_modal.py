@@ -12,10 +12,14 @@ class ErrorModal(ModalScreen):
         self.error_text = "".join(traceback.format_exception(exc))
 
         self.title = error_title or "Error"
+        self.text_area = TextArea(
+            self.error_text, show_line_numbers=True, read_only=True
+        )
+        self.text_area.scroll_end(duration=0.5)
 
     def compose(self):
         yield Header()
-        yield TextArea(self.error_text, show_line_numbers=True)
+        yield self.text_area
         yield Button("OK", variant="error")
 
     @on(Button.Pressed)
