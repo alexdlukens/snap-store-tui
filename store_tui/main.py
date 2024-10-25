@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import requests.exceptions
 import retry
 from textual import on, work
 from textual.app import App, ComposeResult
@@ -102,20 +101,23 @@ class SnapStoreTUI(App):
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
     async def on_mount(self):
-        self.loading = True
         try:
+            self.data_table.loading = True
             categories_response = await snaps_api.get_categories()
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
             ]
             top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
-        except requests.exceptions.ConnectionError:
+        except Exception as e:
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
             self.all_categories = []
             top_snaps = SearchResponse(results=[])
-            pass
-        self.loading = False
+            self.push_screen(
+                ErrorModal(e, error_title="Error - getting categories or top snaps")
+            )
+        finally:
+            self.data_table.loading = False
         await self.data_table.update_table(top_snaps=top_snaps)
 
     @on(DataTable.RowSelected)

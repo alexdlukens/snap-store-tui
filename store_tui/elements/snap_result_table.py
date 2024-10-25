@@ -2,6 +2,7 @@ from typing import Coroutine
 
 from textual import on
 from textual.widgets import DataTable
+from textual.widgets.data_table import RowDoesNotExist
 
 from store_tui.elements.position_count import PositionCount
 from store_tui.schemas.snaps.search import SearchResponse
@@ -39,6 +40,10 @@ class SnapResultTable(DataTable):
 
     @on(DataTable.RowHighlighted)
     def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
-        self.table_position_count.current_number = (
-            self.get_row_index(row_highlighted.row_key) + 1
-        )
+        try:
+            self.table_position_count.current_number = (
+                self.get_row_index(row_highlighted.row_key) + 1
+            )
+        except RowDoesNotExist:
+            # occurs when unable to load data table / data table empty
+            self.table_position_count.current_number = 0
