@@ -22,6 +22,7 @@ class ErrorModal(ModalScreen):
             self.error_text, show_line_numbers=True, read_only=True
         )
         self.text_area.scroll_end(duration=0.5)
+        self.text_area.move_cursor(self.text_area.document.end)
 
     def compose(self):
         yield Header()
