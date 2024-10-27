@@ -1,11 +1,17 @@
 import traceback
+from pathlib import Path
 
 from textual import on
+from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Header, TextArea
 
+MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "error_modal.tcss"
+
 
 class ErrorModal(ModalScreen):
+    CSS_PATH = MODAL_CSS_PATH
+
     def __init__(self, exc: Exception, error_title: str | None = None):
         super().__init__()
         self.exc = exc
@@ -19,8 +25,13 @@ class ErrorModal(ModalScreen):
 
     def compose(self):
         yield Header()
-        yield self.text_area
-        yield Button("OK", variant="error")
+        yield Vertical(
+            Horizontal(self.text_area, classes="centered"),
+            Horizontal(
+                Button("OK", variant="error", classes="centered"),
+                classes="centered button-height",
+            ),
+        )
 
     @on(Button.Pressed)
     def on_button_pressed(self):
