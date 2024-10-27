@@ -2,8 +2,7 @@ import pathlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from requests import Response
-from requests.exceptions import HTTPError
+from httpx import HTTPError, Response
 
 from store_tui.api.snaps import SnapsAPI
 from store_tui.schemas.snaps.categories import (
@@ -44,8 +43,9 @@ async def test_get_categories_fail_bad_field(setup_snaps_api: SnapsAPI):
 @pytest.mark.asyncio
 async def test_get_categories_fail_500(setup_snaps_api: SnapsAPI):
     setup_snaps_api.client.get = AsyncMock()
-    setup_snaps_api.client.get.return_value = Response()
-    setup_snaps_api.client.get.return_value.status_code = 500
+    setup_snaps_api.client.get.return_value = Response(
+        status_code=500, request=MagicMock()
+    )
 
     try:
         await setup_snaps_api.get_categories()

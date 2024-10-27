@@ -11,7 +11,6 @@ repository = "https://github.com/alexdlukens/snap-store-tui"
 [tool.poetry.dependencies]
 python = "^3.10"
 textual = "^0.79.1"
-requests = "^2.32.3"
 pydantic = "^2.9.1"
 rich-pixels = "^3.0.1"
 humanize = "^4.11.0"

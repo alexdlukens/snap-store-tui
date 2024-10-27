@@ -2,8 +2,8 @@ import datetime
 import tempfile
 from pathlib import Path
 
+import httpx
 import humanize
-import requests
 from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -75,7 +75,7 @@ class SnapModal(ModalScreen):
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             icon_path = Path(f.name)
-            icon_path.write_bytes(requests.get(icon_url, timeout=5).content)
+            icon_path.write_bytes(httpx.get(icon_url, timeout=5).content)
             self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
 
     def compose(self):
