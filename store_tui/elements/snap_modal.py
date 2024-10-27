@@ -2,8 +2,8 @@ import datetime
 import tempfile
 from pathlib import Path
 
+import httpx
 import humanize
-import requests
 from rich_pixels import Pixels
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -11,7 +11,7 @@ from textual.widgets import Button, Footer, Label, Static, TextArea
 
 from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
-from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
+from store_tui.schemas.snaps.info import InfoResponse
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
@@ -21,13 +21,11 @@ class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
     BINDINGS = {("q", "dismiss", "Close")}
 
-    def __init__(self, snap_name: str, api: SnapsAPI) -> None:
+    def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
         super().__init__()
         self.snap_name = snap_name
         self.api = api
-        self.snap_info = self.api.get_snap_info(
-            snap_name=self.snap_name, fields=VALID_SNAP_INFO_FIELDS
-        )
+        self.snap_info = snap_info
         self.snap = self.snap_info.snap
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
@@ -77,7 +75,7 @@ class SnapModal(ModalScreen):
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             icon_path = Path(f.name)
-            icon_path.write_bytes(requests.get(icon_url, timeout=5).content)
+            icon_path.write_bytes(httpx.get(icon_url, timeout=5).content)
             self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
 
     def compose(self):
