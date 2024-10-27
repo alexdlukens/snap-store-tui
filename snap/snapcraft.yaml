@@ -26,7 +26,7 @@ confinement: strict # use 'strict' once you have the right plugs and slots
 parts:
   store_tui:
     plugin: nil
-    build-packages: [python3-pip, python3, python3-dev, libffi-dev, libssl-dev, cargo]
+    build-packages: [python3-pip, python3, python3-dev, libffi-dev, libssl-dev, cargo, openssl]
     source: .
     override-build: |
       # set poetry to use virtualenv local to the snap
