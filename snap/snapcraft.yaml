@@ -26,9 +26,21 @@ confinement: strict # use 'strict' once you have the right plugs and slots
 parts:
   store_tui:
     plugin: nil
-    build-packages: [python3-pip, python3, python3-dev, libffi-dev, libssl-dev, cargo, openssl, build-essential, pkg-config, cmake]
+    build-packages: [python3-pip, python3, python3-dev, libffi-dev, libssl-dev]
     source: .
     override-build: |
+      # check architecture for build env
+      ARCH=$CRAFT_ARCH_BUILD_ON
+      echo "Building on $ARCH"
+      # if arch is not amd64 or arm64, install additional dependencies
+      if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
+        echo "Installing additional dependencies for $ARCH"
+        apt-get update
+        apt-get install -y libtiff5-dev libjpeg8-dev libopenjp2-7-dev zlib1g-dev \
+        libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python3-tk \
+        libharfbuzz-dev libfribidi-dev libxcb1-dev cargo openssl build-essential pkg-config cmake
+      fi
+
       # set poetry to use virtualenv local to the snap
       python3 -m pip install poetry --break-system-packages
       poetry config virtualenvs.in-project true
