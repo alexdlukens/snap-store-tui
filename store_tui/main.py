@@ -56,9 +56,11 @@ class SnapStoreTUI(App):
         self.data_table = SnapResultTable(
             table_position_count=self.table_position_count, table_columns=TABLE_COLUMNS
         )
+        self.header = Header()
+        self.header.tall = False
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield self.header
         yield self.data_table
         with Horizontal(id="footer-outer"):
             with Horizontal(id="footer-inner"):
@@ -119,6 +121,8 @@ class SnapStoreTUI(App):
         finally:
             self.data_table.loading = False
         await self.data_table.update_table(top_snaps=top_snaps)
+        if self.data_table.row_count > 0:
+            self.data_table.focus()
 
     @on(DataTable.RowSelected)
     async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
