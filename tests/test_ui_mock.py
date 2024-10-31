@@ -30,7 +30,7 @@ def mocked_snaps_api():
     snaps_api.get_top_snaps_from_category = AsyncMock(
         spec=SnapsAPI.get_top_snaps_from_category
     )
-    with open(TESTS_DATA_DIR / "featured_snaps.json") as f:
+    with open(TESTS_DATA_DIR / "featured_snaps_response.json") as f:
         snaps_api.get_top_snaps_from_category.return_value = (
             SearchResponse.model_validate_json(f.read())
         )
