@@ -79,7 +79,7 @@ class Snap(BaseModel):
 
     categories: Optional[List[Category]] = None
     contact: Optional[str] = None
-    description: Optional[str] = None
+    description: Optional[str] = ""
     gated_snap_ids: Optional[List[str]] = Field(
         None, alias=AliasChoices("gated-snap-ids", "gated_snap_ids")
     )
