@@ -138,4 +138,4 @@ class SnapStoreTUI(App):
 
 
 if __name__ == "__main__":
-    SnapStoreTUI().run()
+    SnapStoreTUI(api=snaps_api).run()
