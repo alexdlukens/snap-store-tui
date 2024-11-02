@@ -6,6 +6,7 @@ from store_tui.main import SnapStoreTUI
 from store_tui.schemas.snaps.categories import (
     CategoryResponse,
 )
+from store_tui.schemas.snaps.info import InfoResponse
 from store_tui.schemas.snaps.search import SearchResponse
 
 TESTS_DIR = pathlib.Path(__file__).parent.parent / "tests"
@@ -31,6 +32,12 @@ def mocked_snaps_api():
         snaps_api.get_top_snaps_from_category.return_value = (
             SearchResponse.model_validate_json(f.read())
         )
+
+    with open(TESTS_DATA_DIR / "snap_info_response_success.json") as f:
+        snaps_api.get_snap_info = AsyncMock(spec=snaps_api.get_snap_info)
+        response = InfoResponse.model_validate_json(f.read())
+        # print(response.snap)
+        snaps_api.get_snap_info.return_value = response
 
     return snaps_api
 
