@@ -110,7 +110,7 @@ class ChannelMapItem(BaseModel):
     download: Optional[Download] = None
     epoch: Optional[Epoch] = None
     resources: Optional[List[Resource]] = None
-    revision: Optional[float] = None
+    revision: Optional[int] = None
     snap_yaml: Optional[str] = Field(None, alias="snap-yaml")
     type: Optional[str] = None
     version: Optional[str] = None

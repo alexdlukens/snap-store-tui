@@ -5,12 +5,14 @@ from pathlib import Path
 import httpx
 import humanize
 from rich_pixels import Pixels
+from textual import work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
 
 from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
+from store_tui.elements.install_modal import InstallModal
 from store_tui.schemas.snaps.info import InfoResponse
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
@@ -24,7 +26,7 @@ PLACEHOLDER_ICON_FILEPATH = TEST_DATA_DIR / "placeholder_image.jpeg"
 
 class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close")}
+    BINDINGS = {("q", "dismiss", "Close"), ("tab", "modify", "Install/Modify")}
 
     def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
         super().__init__()
@@ -48,6 +50,10 @@ class SnapModal(ModalScreen):
             pass
 
         self.supported_architectures = self.get_architectures()
+
+    @work
+    async def action_modify(self):
+        await self.app.push_screen(InstallModal(self.snap_info), wait_for_dismiss=True)
 
     def get_architectures(self) -> list[str]:
         architectures = set()
