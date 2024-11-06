@@ -14,6 +14,7 @@ from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
 from store_tui.elements.install_modal import InstallModal
 from store_tui.schemas.snaps.info import InfoResponse
+from store_tui.schemas.snaps.search import Media
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
@@ -84,7 +85,7 @@ class SnapModal(ModalScreen):
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
         if self.snap.media:
-            icon_url = self.snap.media[0].url
+            icon_url = self.get_icon_url(self.snap.media)
         else:
             icon_url = PLACEHOLDER_ICON_URL
         self.icon_obj = None
@@ -92,6 +93,13 @@ class SnapModal(ModalScreen):
             icon_path = Path(f.name)
             icon_path.write_bytes(httpx.get(icon_url, timeout=5).content)
             self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
+
+    def get_icon_url(self, media: list[Media]) -> str:
+        """Get the icon_url from the media list"""
+        for media_obj in media:
+            if media_obj.type == "icon":
+                return media_obj.url
+        return PLACEHOLDER_ICON_URL
 
     def compose(self):
         yield Horizontal(
