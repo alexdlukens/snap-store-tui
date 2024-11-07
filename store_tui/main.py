@@ -94,8 +94,11 @@ class SnapStoreTUI(App):
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
     async def on_mount(self):
+        self.data_table.loading = True
+        self.call_after_refresh(self.init_main_screen)
+
+    async def init_main_screen(self):
         try:
-            self.data_table.loading = True
             categories_response = await self.api.get_categories()
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
@@ -104,7 +107,7 @@ class SnapStoreTUI(App):
         except Exception as e:
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
-            self.all_categories = []
+            self.all_categories = ["featured"]
             top_snaps = SearchResponse(results=[])
             self.push_screen(
                 ErrorModal(e, error_title="Error - getting categories or top snaps")
