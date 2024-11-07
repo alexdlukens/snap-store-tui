@@ -43,8 +43,8 @@ parts:
 
       # set poetry to use virtualenv local to the snap
       python3 -m pip install poetry --break-system-packages
-      poetry config virtualenvs.in-project true
-      poetry install
+      python3 -m poetry config virtualenvs.in-project true
+      python3 -m poetry install
       # copy virtualenv and store_tui dir to install dir
       cp -a -r $CRAFT_PART_BUILD/.venv/. $CRAFT_PART_INSTALL/
       cp -r $CRAFT_PART_BUILD/store_tui/ $CRAFT_PART_INSTALL/
