@@ -9,7 +9,7 @@ keywords = ["snap", "store", "snapcraft", "tui", "terminal", "cli"]
 repository = "https://github.com/alexdlukens/snap-store-tui"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.12"
 textual = "^0.79.1"
 pydantic = "^2.9.1"
 rich-pixels = "^3.0.1"
