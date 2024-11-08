@@ -58,6 +58,7 @@ class InstallModal(ModalScreen):
                 channel_node.add(
                     f"Released: {humanize.naturaltime(channel.channel.released_at)} ({channel.channel.released_at})"
                 )
+                channel_node.add(f"Confinement: {channel.confinement}")
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
         """Organize channels by architecture, then track"""
