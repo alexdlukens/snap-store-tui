@@ -1,4 +1,3 @@
-import datetime
 import tempfile
 from pathlib import Path
 
@@ -68,16 +67,13 @@ class SnapModal(ModalScreen):
         # get the most recent date from all channels
         last_modified_date = None
         for channel in self.snap_info.channel_map:
-            if channel.created_at is not None:
-                if last_modified_date is None:
-                    last_modified_date = datetime.datetime.fromisoformat(
-                        channel.created_at
-                    )
-                else:
-                    last_modified_date = max(
-                        last_modified_date,
-                        datetime.datetime.fromisoformat(channel.created_at),
-                    )
+            if last_modified_date is None:
+                last_modified_date = channel.created_at
+                continue
+            last_modified_date = max(
+                last_modified_date,
+                channel.created_at,
+            )
         if last_modified_date is None:
             return "Unknown"
         return humanize.naturaltime(last_modified_date)
