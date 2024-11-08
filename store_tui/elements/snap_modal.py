@@ -12,6 +12,7 @@ from textual.widgets import Button, Footer, Label, Static, TextArea
 from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
 from store_tui.elements.install_modal import InstallModal
+from store_tui.elements.utils import get_platform_architecture
 from store_tui.schemas.snaps.info import InfoResponse
 from store_tui.schemas.snaps.search import Media
 
@@ -128,6 +129,11 @@ class SnapModal(ModalScreen):
                 Static(self.icon_obj, classes="centered snap-icon"),
                 Label(
                     f"License: {self.snap.license or 'unset'}",
+                    classes="details-item",
+                    shrink=True,
+                ),
+                Label(
+                    f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
                     classes="details-item",
                     shrink=True,
                 ),
