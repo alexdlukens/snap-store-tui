@@ -1,5 +1,6 @@
 import functools
 
+import retry
 from httpx import AsyncClient
 
 from store_tui.schemas.snaps.categories import (
@@ -140,3 +141,12 @@ class SnapsAPI:
         )
         response.raise_for_status()
         return SearchResponse.model_validate_json(response.content)
+
+    @retry.retry(Exception, tries=3, delay=2, backoff=2)
+    async def retry_get_snap_info(self, snap_name: str, fields: list[str]):
+        return await self.get_snap_info(snap_name=snap_name, fields=fields)
+
+    async def get_top_snaps_from_category(self, category: str) -> SearchResponse:
+        return await self.find(
+            category=category, fields=["title", "store-url", "summary"]
+        )

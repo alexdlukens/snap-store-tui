@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 
-import retry
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
@@ -29,15 +28,6 @@ ConnectionError
 TABLE_COLUMNS = ("Name", "Description")
 
 
-async def get_top_snaps_from_category(api: SnapsAPI, category: str) -> SearchResponse:
-    return await api.find(category=category, fields=["title", "store-url", "summary"])
-
-
-@retry.retry(Exception, tries=3, delay=2, backoff=2)
-async def retry_get_snap_info(snap_name: str, fields: list[str]):
-    return await snaps_api.get_snap_info(snap_name=snap_name, fields=fields)
-
-
 class SnapStoreTUI(App):
     BINDINGS = [
         ("q", "quit", "Quit"),
@@ -46,10 +36,11 @@ class SnapStoreTUI(App):
     ]
     CSS_PATH = Path(__file__).parent / "styles" / "main.tcss"
 
-    def __init__(self) -> None:
+    def __init__(self, api: SnapsAPI) -> None:
         super().__init__()
         self.current_category = "featured"
         self.all_categories = []
+        self.api = api
 
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
@@ -79,7 +70,7 @@ class SnapStoreTUI(App):
             ),
             wait_for_dismiss=True,
         )
-        top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
+        top_snaps = self.api.get_top_snaps_from_category(self.current_category)
         await self.data_table.update_table(top_snaps=top_snaps)
         self.update_title()
 
@@ -92,7 +83,7 @@ class SnapStoreTUI(App):
         )
         self.current_category = "Search"
         # send to update table to use "find" method
-        top_snaps = snaps_api.find(
+        top_snaps = self.api.find(
             query=search_query.value, fields=["title", "store-url", "summary"]
         )
         await self.data_table.update_table(top_snaps=top_snaps)
@@ -103,17 +94,20 @@ class SnapStoreTUI(App):
         self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
 
     async def on_mount(self):
+        self.data_table.loading = True
+        self.call_after_refresh(self.init_main_screen)
+
+    async def init_main_screen(self):
         try:
-            self.data_table.loading = True
-            categories_response = await snaps_api.get_categories()
+            categories_response = await self.api.get_categories()
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
             ]
-            top_snaps = get_top_snaps_from_category(snaps_api, self.current_category)
+            top_snaps = self.api.get_top_snaps_from_category(self.current_category)
         except Exception as e:
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
-            self.all_categories = []
+            self.all_categories = ["featured"]
             top_snaps = SearchResponse(results=[])
             self.push_screen(
                 ErrorModal(e, error_title="Error - getting categories or top snaps")
@@ -129,7 +123,7 @@ class SnapStoreTUI(App):
         snap_row_key = row_selected.row_key.value
         try:
             self.data_table.loading = True
-            snap_info = await retry_get_snap_info(
+            snap_info = await self.api.retry_get_snap_info(
                 snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
             )
         except Exception as e:
@@ -141,10 +135,10 @@ class SnapStoreTUI(App):
         if snap_info is None:
             return
         snap_modal = SnapModal(
-            snap_name=snap_row_key, api=snaps_api, snap_info=snap_info
+            snap_name=snap_row_key, api=self.api, snap_info=snap_info
         )
         self.push_screen(snap_modal)
 
 
 if __name__ == "__main__":
-    SnapStoreTUI().run()
+    SnapStoreTUI(api=snaps_api).run()

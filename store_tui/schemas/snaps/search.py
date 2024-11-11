@@ -5,7 +5,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, AwareDatetime, BaseModel, ConfigDict, Field
 
 from store_tui.schemas.snaps.categories import Category, Media
 
@@ -79,8 +79,10 @@ class Snap(BaseModel):
 
     categories: Optional[List[Category]] = None
     contact: Optional[str] = None
-    description: Optional[str] = None
-    gated_snap_ids: Optional[List[str]] = Field(None, alias="gated-snap-ids")
+    description: Optional[str] = ""
+    gated_snap_ids: Optional[List[str]] = Field(
+        None, alias=AliasChoices("gated-snap-ids", "gated_snap_ids")
+    )
     license: Optional[str] = None
     links: Optional[Dict[str, Any]] = None
     media: Optional[List[Media]] = None
@@ -88,8 +90,8 @@ class Snap(BaseModel):
     prices: Optional[Dict[str, Any]] = None
     private: Optional[bool] = None
     publisher: Optional[Publisher] = Field(None, description="The publisher.")
-    snap_id: Optional[str] = Field(None, alias="snap-id")
-    store_url: Optional[str] = Field(None, alias="store-url")
+    snap_id: Optional[str] = Field(None, alias=AliasChoices("snap-id", "snap_id"))
+    store_url: Optional[str] = Field(None, alias=AliasChoices("store-url", "store_url"))
     summary: Optional[str] = None
     title: Optional[str] = None
     trending: Optional[bool] = None
@@ -148,7 +150,7 @@ class SearchResult(BaseModel):
     name: str
     revision: Optional[Revision] = None
     snap: Snap
-    snap_id: str = Field(..., alias="snap-id")
+    snap_id: str = Field(alias=AliasChoices("snap-id", "snap_id"))
 
 
 class SearchResponse(BaseModel):

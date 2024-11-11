@@ -4,7 +4,7 @@
 
 from typing import List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from store_tui.schemas.snaps.search import Snap
 
@@ -47,7 +47,7 @@ class Channel(BaseModel):
 
     architecture: str
     name: str
-    released_at: Optional[str] = Field(None, alias="released-at")
+    released_at: Optional[AwareDatetime] = Field(None, alias="released-at")
     risk: str
     track: str
 
@@ -106,11 +106,11 @@ class ChannelMapItem(BaseModel):
     channel: Channel
     common_ids: Optional[List[str]] = Field(None, alias="common-ids")
     confinement: Optional[str] = None
-    created_at: Optional[str] = Field(None, alias="created-at")
+    created_at: Optional[AwareDatetime] = Field(None, alias="created-at")
     download: Optional[Download] = None
     epoch: Optional[Epoch] = None
     resources: Optional[List[Resource]] = None
-    revision: Optional[float] = None
+    revision: Optional[int] = None
     snap_yaml: Optional[str] = Field(None, alias="snap-yaml")
     type: Optional[str] = None
     version: Optional[str] = None
