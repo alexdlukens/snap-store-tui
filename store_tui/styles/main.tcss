@@ -9,3 +9,7 @@ Label#table-position-count {
     width: 10%;
     text-align: right;
 }
+DataTable {
+    width: 100%;
+    height: 100%;
+}

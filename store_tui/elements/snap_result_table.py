@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Coroutine
 
 from textual import on
@@ -9,13 +10,14 @@ from store_tui.schemas.snaps.search import SearchResponse
 
 
 class SnapResultTable(DataTable):
+    MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "main.tcss"
+
     def __init__(self, table_position_count: PositionCount, table_columns):
         super().__init__()
         self.table_position_count = table_position_count
-        self.add_columns(*table_columns)
-        for column in self.columns.values():
-            column.auto_width = True
-        self.cursor_type = "row"
+        self.table_columns = table_columns
+
+        self.call_after_refresh(self.after_init)
 
     async def update_table(self, top_snaps: Coroutine[None, None, SearchResponse]):
         self.clear()
@@ -37,6 +39,12 @@ class SnapResultTable(DataTable):
                 key=snap_result.name,
             )
         self.set_loading(False)
+
+    async def after_init(self):
+        self.add_columns(*self.table_columns)
+        for column in self.columns.values():
+            column.auto_width = True
+        self.cursor_type = "row"
 
     @on(DataTable.RowHighlighted)
     def on_data_table_row_highlighted(self, row_highlighted: DataTable.RowHighlighted):
