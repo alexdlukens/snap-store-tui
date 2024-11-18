@@ -4,7 +4,7 @@ from pathlib import Path
 import httpx
 import humanize
 from rich_pixels import Pixels
-from textual import work
+from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
@@ -51,6 +51,13 @@ class SnapModal(ModalScreen):
             pass
 
         self.supported_architectures = self.get_architectures()
+        self.install_button = Button(
+            "Install/Modify", classes="install-button", id="install-button"
+        )
+
+    @on(Button.Pressed, "#install-button")
+    async def install_button_pressed(self):
+        self.action_modify()
 
     @work
     async def action_modify(self):
@@ -110,7 +117,7 @@ class SnapModal(ModalScreen):
                 classes="title-container",
             ),
             Vertical(
-                Button("Install/Modify", classes="install-button"),
+                self.install_button,
                 classes="button-container",
             ),
             classes="top-row",
