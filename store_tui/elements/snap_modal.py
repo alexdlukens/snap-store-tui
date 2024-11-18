@@ -27,7 +27,7 @@ PLACEHOLDER_ICON_FILEPATH = TEST_DATA_DIR / "placeholder_image.jpeg"
 
 class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close"), ("tab", "modify", "Install/Modify")}
+    BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
 
     def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
         super().__init__()
