@@ -122,7 +122,7 @@ class SnapModal(ModalScreen):
         yield Horizontal(
             Vertical(
                 Label("Description"),
-                TextArea(self.snap.description, read_only=True),
+                TextArea(self.snap.description, read_only=True, id="description-box"),
                 classes="description-box",
             ),  # description
             VerticalScroll(
@@ -164,3 +164,6 @@ class SnapModal(ModalScreen):
             classes="main-row",
         )
         yield Footer(show_command_palette=False)
+
+    def on_mount(self):
+        self.set_focus(self.get_widget_by_id("description-box"))
