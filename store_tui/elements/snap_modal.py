@@ -17,12 +17,10 @@ from store_tui.schemas.snaps.info import InfoResponse
 from store_tui.schemas.snaps.search import Media
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
-PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
 
 BASE_DIR = Path(__file__).parent.parent.parent
-TEST_DIR = BASE_DIR / "tests"
-TEST_DATA_DIR = TEST_DIR / "data"
-PLACEHOLDER_ICON_FILEPATH = TEST_DATA_DIR / "placeholder_image.jpeg"
+SCHEMAS_DIR = BASE_DIR / "store_tui" / "schemas"
+PLACEHOLDER_ICON_FILEPATH = SCHEMAS_DIR / "images" / "placeholder.png"
 
 
 class SnapModal(ModalScreen):
@@ -43,12 +41,9 @@ class SnapModal(ModalScreen):
         try:
             self.download_icon()
         except Exception:
-            # download fails for some reason
-            # use placeholder image
             self.icon_obj = Pixels.from_image_path(
                 PLACEHOLDER_ICON_FILEPATH, resize=(16, 16)
             )
-            pass
 
         self.supported_architectures = self.get_architectures()
         self.install_button = Button(
@@ -88,10 +83,10 @@ class SnapModal(ModalScreen):
 
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
-        if self.snap.media:
-            icon_url = self.get_icon_url(self.snap.media)
-        else:
-            icon_url = PLACEHOLDER_ICON_URL
+        icon_url = self.get_icon_url(self.snap.media)
+        if icon_url is None:
+            raise ValueError("Icon URL not found")
+
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             icon_path = Path(f.name)
@@ -103,7 +98,7 @@ class SnapModal(ModalScreen):
         for media_obj in media:
             if media_obj.type == "icon":
                 return media_obj.url
-        return PLACEHOLDER_ICON_URL
+        return None
 
     def compose(self):
         yield Horizontal(

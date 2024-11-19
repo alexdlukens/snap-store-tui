@@ -91,7 +91,7 @@ class SnapStoreTUI(App):
 
     def update_title(self):
         """Set title based on the current category"""
-        self.title = f"SnapStoreTUI - {self.current_category.capitalize()}"
+        self.title = f"store-tui - {self.current_category.capitalize()}"
 
     async def on_mount(self):
         self.data_table.loading = True
