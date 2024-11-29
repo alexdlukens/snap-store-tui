@@ -4,17 +4,17 @@ from pathlib import Path
 import httpx
 import humanize
 from rich_pixels import Pixels
+from snap_python.client import SnapClient
+from snap_python.schemas.store.info import InfoResponse
+from snap_python.schemas.store.search import Media
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
 
-from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
 from store_tui.elements.install_modal import InstallModal
 from store_tui.elements.utils import get_platform_architecture
-from store_tui.schemas.snaps.info import InfoResponse
-from store_tui.schemas.snaps.search import Media
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 
@@ -27,7 +27,9 @@ class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
     BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
 
-    def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
+    def __init__(
+        self, snap_name: str, api: SnapClient, snap_info: InfoResponse
+    ) -> None:
         super().__init__()
         self.snap_name = snap_name
         self.api = api

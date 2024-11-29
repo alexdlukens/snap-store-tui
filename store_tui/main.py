@@ -1,28 +1,28 @@
 import logging
 from pathlib import Path
 
+from snap_python.client import SnapClient
+from snap_python.schemas.store.categories import CategoryResponse
+from snap_python.schemas.store.info import VALID_SNAP_INFO_FIELDS
+from snap_python.schemas.store.search import SearchResponse
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import DataTable, Footer, Header, Input
 
-from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.category_modal import CategoryModal
 from store_tui.elements.error_modal import ErrorModal
 from store_tui.elements.position_count import PositionCount
 from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
 from store_tui.elements.snap_result_table import SnapResultTable
-from store_tui.schemas.snaps.categories import CategoryResponse
-from store_tui.schemas.snaps.info import VALID_SNAP_INFO_FIELDS
-from store_tui.schemas.snaps.search import SearchResponse
 
 logger = logging.getLogger(__name__)
 
-snaps_api = SnapsAPI(
-    base_url="https://api.snapcraft.io",
+snaps_api = SnapClient(
+    store_base_url="https://api.snapcraft.io",
     version="v2",
-    headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
+    store_headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
 )
 ConnectionError
 TABLE_COLUMNS = ("Name", "Description")
@@ -36,7 +36,7 @@ class SnapStoreTUI(App):
     ]
     CSS_PATH = Path(__file__).parent / "styles" / "main.tcss"
 
-    def __init__(self, api: SnapsAPI) -> None:
+    def __init__(self, api: SnapClient) -> None:
         super().__init__()
         self.current_category = "featured"
         self.all_categories = []
@@ -70,7 +70,7 @@ class SnapStoreTUI(App):
             ),
             wait_for_dismiss=True,
         )
-        top_snaps = self.api.get_top_snaps_from_category(self.current_category)
+        top_snaps = self.api.store.get_top_snaps_from_category(self.current_category)
         await self.data_table.update_table(top_snaps=top_snaps)
         self.update_title()
 
@@ -83,7 +83,7 @@ class SnapStoreTUI(App):
         )
         self.current_category = "Search"
         # send to update table to use "find" method
-        top_snaps = self.api.find(
+        top_snaps = self.api.store.find(
             query=search_query.value, fields=["title", "store-url", "summary"]
         )
         await self.data_table.update_table(top_snaps=top_snaps)
@@ -99,11 +99,13 @@ class SnapStoreTUI(App):
 
     async def init_main_screen(self):
         try:
-            categories_response = await self.api.get_categories()
+            categories_response = await self.api.store.get_categories()
             self.all_categories: list[str] = [
                 category.name for category in categories_response.categories
             ]
-            top_snaps = self.api.get_top_snaps_from_category(self.current_category)
+            top_snaps = self.api.store.get_top_snaps_from_category(
+                self.current_category
+            )
         except Exception as e:
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
@@ -123,7 +125,7 @@ class SnapStoreTUI(App):
         snap_row_key = row_selected.row_key.value
         try:
             self.data_table.loading = True
-            snap_info = await self.api.retry_get_snap_info(
+            snap_info = await self.api.store.retry_get_snap_info(
                 snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
             )
         except Exception as e:

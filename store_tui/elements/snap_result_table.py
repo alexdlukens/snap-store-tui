@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Coroutine
 
+from snap_python.schemas.store.search import SearchResponse
 from textual import on
 from textual.widgets import DataTable
 from textual.widgets.data_table import RowDoesNotExist
 
 from store_tui.elements.position_count import PositionCount
-from store_tui.schemas.snaps.search import SearchResponse
 
 
 class SnapResultTable(DataTable):

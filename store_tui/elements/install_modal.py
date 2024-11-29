@@ -1,11 +1,11 @@
 from pathlib import Path
 
 import humanize
+from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Tree
 
 from store_tui.elements.utils import get_platform_architecture
-from store_tui.schemas.snaps.info import ChannelMapItem, InfoResponse
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
 PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
