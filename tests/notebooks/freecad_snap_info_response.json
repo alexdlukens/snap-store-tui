@@ -1,0 +1,268 @@
+{
+    "channel_map": [
+        {
+            "architectures": [
+                "amd64"
+            ],
+            "base": "core20",
+            "channel": {
+                "architecture": "amd64",
+                "name": "stable",
+                "released_at": "2024-01-28T10:01:01.133273+00:00",
+                "risk": "stable",
+                "track": "latest"
+            },
+            "common_ids": [
+                "org.freecadweb.FreeCAD.desktop"
+            ],
+            "confinement": "strict",
+            "created_at": "2024-01-27T00:15:23.426103+00:00",
+            "download": {
+                "deltas": [],
+                "sha3_384": "77bfe4191b26b85a4ee017d8519a7466fd6764bd9dceda4d823d83eb8e2a22bf28ce733684e43399ecc4533adcba4ac6",
+                "size": 855138304.0,
+                "url": "https://api.snapcraft.io/api/v1/snaps/download/6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB_908.snap"
+            },
+            "epoch": {
+                "read": [
+                    0.0
+                ],
+                "write": [
+                    0.0
+                ]
+            },
+            "resources": [],
+            "revision": 908,
+            "snap_yaml": "name: freecad\nversion: 0.21.2\nsummary: An open source parametric 3D CAD modeler\ndescription: \"FreeCAD is a parametric 3D modeler. Parametric modeling\\nallows you\n  to easily modify your design by going back into\\nyour model history and changing\n  its parameters. FreeCAD is\\nopen source (LGPL license) and completely modular, allowing\\nfor\n  very advanced extension and customization.\\n\\nFreeCAD is multiplatfom, and reads\n  and writes many open\\nfile formats such as STEP, IGES, STL and others.\\n\\nCommands:\\n\n  \\     freecad:      Run FreeCAD\\n      freecad.cmd:  Run FreeCAD command line interface\\n\n  \\     freecad.pip:  Install python packages for user (not system-wide). \\n                    E.g.\n  `freecad.pip install py_slvs` for Assembly3. \\n\"\napps:\n  cmd:\n    command: usr/bin/FreeCADCmd\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/snapcraft-runner\n    - snap/command-chain/desktop-launch\n  freecad:\n    command: usr/bin/FreeCAD\n    common-id: org.freecadweb.FreeCAD.desktop\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/snapcraft-runner\n    - snap/command-chain/desktop-launch\n  pip:\n    command: bin/pip\n    plugs:\n    - home\n    - opengl\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/snapcraft-runner\narchitectures:\n- amd64\nassumes:\n- command-chain\n- snapd2.43\n- snapd2.55.3\nbase: core20\nconfinement: strict\nenvironment:\n  LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack\n  LD_PRELOAD: $SNAP/usr/lib/x86_64-linux-gnu/libstubchown.so\n  FREECAD_USER_HOME: $SNAP_USER_COMMON\n  GIT_EXEC_PATH: $SNAP/usr/lib/git-core\n  GIT_TEMPLATE_DIR: $SNAP/usr/share/git-core/templates\n  GIT_CONFIG_NOSYSTEM: 1\n  ELMER_HOME: $SNAP/usr\n  QTWEBENGINE_DISABLE_SANDBOX: 1\n  PYTHONPYCACHEPREFIX: $SNAP_USER_COMMON/.pycache\n  PYTHONUSERBASE: $SNAP_USER_COMMON/.local\n  PIP_USER: 1\n  PYTHONPATH: $PYTHONUSERBASE/lib/python3.8/site-packages:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages\n  SNAP_PYTHONPATH: $PYTHONUSERBASE/lib/python3.8/site-packages:$SNAP/lib/python3.8/site-packages:$SNAP/usr/lib/python3/dist-packages\n  QT_QPA_PLATFORM: xcb\n  POVINI: $SNAP/etc/povray/3.7/povray.ini\n  SNAP_DESKTOP_RUNTIME: $SNAP/kf5\ngrade: stable\nhooks:\n  configure:\n    command-chain:\n    - snap/command-chain/hooks-configure-desktop\n    plugs:\n    - desktop\nlayout:\n  /usr/share/libdrm/amdgpu.ids:\n    symlink: $SNAP/kf5/usr/share/libdrm/amdgpu.ids\n  /usr/share/openmpi:\n    symlink: $SNAP/usr/share/openmpi\n  /etc/openmpi:\n    bind: $SNAP/etc/openmpi\n  /usr/lib/x86_64-linux-gnu/openmpi:\n    bind: $SNAP/usr/lib/x86_64-linux-gnu/openmpi\n  /usr/bin/orted:\n    symlink: $SNAP/usr/bin/orted\n  /usr/share/pmix:\n    symlink: $SNAP/usr/share/pmix\n  /usr/lib/x86_64-linux-gnu/pmix:\n    symlink: $SNAP/usr/lib/x86_64-linux-gnu/pmix\n  /etc/matplotlibrc:\n    bind-file: $SNAP/etc/matplotlibrc\n  /usr/share/matplotlib:\n    symlink: $SNAP/usr/share/matplotlib\n  /usr/share/qt5:\n    symlink: $SNAP/kf5/usr/share/qt5\n  /usr/bin/dot:\n    symlink: $SNAP/usr/bin/dot\n  /usr/bin/unflatten:\n    symlink: $SNAP/usr/bin/unflatten\n  /usr/share/povray-3.7:\n    symlink: $SNAP/usr/share/povray-3.7\n  /usr/share/X11:\n    symlink: $SNAP/kf5/usr/share/X11\nlicense: LGPL-2.0-or-later\nplugs:\n  desktop:\n    mount-host-font-cache: false\n  foo-install-cups:\n    interface: content\n    content: foo\n    target: $SNAP_DATA/foo\n    default-provider: cups\n  icon-themes:\n    interface: content\n    target: $SNAP/data-dir/icons\n    default-provider: gtk-common-themes\n  kde-frameworks-5-99-qt-5-15-7-core20:\n    interface: content\n    content: kde-frameworks-5-99-qt-5-15-7-core20-all\n    target: $SNAP/kf5\n    default-provider: kde-frameworks-5-99-qt-5-15-7-core20\n  shared-memory:\n    private: true\n  sound-themes:\n    interface: content\n    target: $SNAP/data-dir/sounds\n    default-provider: gtk-common-themes\n",
+            "type": "app",
+            "version": "0.21.2"
+        },
+        {
+            "architectures": [
+                "amd64"
+            ],
+            "base": "core22",
+            "channel": {
+                "architecture": "amd64",
+                "name": "candidate",
+                "released_at": "2024-10-15T15:11:07.200455+00:00",
+                "risk": "candidate",
+                "track": "latest"
+            },
+            "common_ids": [
+                "org.freecad.FreeCAD.desktop"
+            ],
+            "confinement": "strict",
+            "created_at": "2024-10-15T15:06:31.535002+00:00",
+            "download": {
+                "deltas": [],
+                "sha3_384": "e2b881b6c948643ef51922562f7403df96d419325c12e90d6dcbf8dde6e1e6107c9cc0e330de45c975649c030a9f6005",
+                "size": 823746560.0,
+                "url": "https://api.snapcraft.io/api/v1/snaps/download/6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB_1162.snap"
+            },
+            "epoch": {
+                "read": [
+                    0.0
+                ],
+                "write": [
+                    0.0
+                ]
+            },
+            "resources": [],
+            "revision": 1162,
+            "snap_yaml": "name: freecad\nversion: 1.0-g3d63fc6c\nsummary: An open source parametric 3D CAD modeler\ndescription: |\n  FreeCAD is a parametric 3D modeler. Parametric modeling\n  allows you to easily modify your design by going back into\n  your model history and changing its parameters. FreeCAD is\n  open source (LGPL license) and completely modular, allowing\n  for very advanced extension and customization.\n\n  FreeCAD is multiplatfom, and reads and writes many open\n  file formats such as STEP, IGES, STL and others.\n\n  Please also consider RealThunder's well-known FreeCAD fork\n  `freecad-realthunder`: https://snapcraft.io/freecad-realthunder\n\n  Commands:\n        freecad:      Run FreeCAD\n        freecad.cmd:  Run FreeCAD command line interface\n        freecad.pip:  Install python packages for user (not system-wide).\n                      E.g. `freecad.pip install py_slvs` for Assembly3.\nlicense: LGPL-2.1-or-later\narchitectures:\n- amd64\nbase: core22\nassumes:\n- command-chain\n- snapd2.43\n- snapd2.55.3\napps:\n  freecad:\n    command: usr/bin/FreeCAD\n    common-id: org.freecad.FreeCAD.desktop\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  cmd:\n    command: usr/bin/FreeCADCmd\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  pip:\n    command: bin/pip\n    plugs:\n    - home\n    - opengl\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\nconfinement: strict\ngrade: stable\nenvironment:\n  LD_LIBRARY_PATH: $SNAP/usr/lib/:$SNAP/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib:/$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$LD_LIBRARY_PATH\n  LD_PRELOAD: $SNAP/usr/lib/x86_64-linux-gnu/libstubchown.so\n  FREECAD_USER_HOME: $SNAP_USER_COMMON\n  GIT_EXEC_PATH: $SNAP/usr/lib/git-core\n  GIT_TEMPLATE_DIR: $SNAP/usr/share/git-core/templates\n  GIT_CONFIG_NOSYSTEM: '1'\n  ELMER_HOME: $SNAP/usr\n  PYTHONPYCACHEPREFIX: $SNAP_USER_COMMON/.pycache\n  PYTHONUSERBASE: $SNAP_USER_COMMON/.local\n  PIP_USER: '1'\n  PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  SNAP_PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  QT_QPA_PLATFORM: xcb\n  POVINI: $SNAP/etc/povray/3.7/povray.ini\n  SNAP_DESKTOP_RUNTIME: $SNAP/kf5\n  PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH\nplugs:\n  foo-install-cups:\n    content: foo\n    interface: content\n    target: $SNAP_DATA/foo\n    default-provider: cups\n  shared-memory:\n    private: true\n  kf5-5-108-qt-5-15-10-core22:\n    content: kf5-5-108-qt-5-15-10-core22-all\n    interface: content\n    target: $SNAP/kf5\n    default-provider: kf5-5-108-qt-5-15-10-core22\n  desktop:\n    mount-host-font-cache: false\n  icon-themes:\n    interface: content\n    target: $SNAP/data-dir/icons\n    default-provider: gtk-common-themes\n  sound-themes:\n    interface: content\n    target: $SNAP/data-dir/sounds\n    default-provider: gtk-common-themes\nhooks:\n  configure:\n    command-chain:\n    - snap/command-chain/hooks-configure-desktop\n    plugs:\n    - desktop\nlayout:\n  /usr/share/X11:\n    symlink: $SNAP/kf5/usr/share/X11\n  /usr/share/libdrm/amdgpu.ids:\n    bind-file: $SNAP/kf5/usr/share/libdrm/amdgpu.ids\n  /usr/bin/mpirun:\n    symlink: $SNAP/usr/bin/orterun\n  /usr/share/openmpi:\n    symlink: $SNAP/usr/share/openmpi\n  /etc/openmpi:\n    bind: $SNAP/etc/openmpi\n  /usr/lib/x86_64-linux-gnu/openmpi:\n    bind: $SNAP/usr/lib/x86_64-linux-gnu/openmpi\n  /usr/bin/orted:\n    symlink: $SNAP/usr/bin/orted\n  /usr/share/pmix:\n    symlink: $SNAP/usr/share/pmix\n  /usr/lib/x86_64-linux-gnu/pmix:\n    symlink: $SNAP/usr/lib/x86_64-linux-gnu/pmix\n  /etc/matplotlibrc:\n    bind-file: $SNAP/etc/matplotlibrc\n  /usr/share/matplotlib:\n    symlink: $SNAP/usr/share/matplotlib\n  /usr/share/qt5:\n    symlink: $SNAP/kf5/usr/share/qt5\n  /usr/bin/dot:\n    symlink: $SNAP/usr/bin/dot\n  /usr/bin/unflatten:\n    symlink: $SNAP/usr/bin/unflatten\n  /usr/share/povray-3.7:\n    symlink: $SNAP/usr/share/povray-3.7\nlinks:\n  donation:\n  - https://wiki.freecad.org/Donate\n  issues:\n  - https://github.com/FreeCAD/FreeCAD-snap/issues\n  website:\n  - https://freecad.org\n",
+            "type": "app",
+            "version": "1.0-g3d63fc6c"
+        },
+        {
+            "architectures": [
+                "amd64"
+            ],
+            "base": "core22",
+            "channel": {
+                "architecture": "amd64",
+                "name": "beta",
+                "released_at": "2024-11-03T04:15:24.610491+00:00",
+                "risk": "beta",
+                "track": "latest"
+            },
+            "common_ids": [
+                "org.freecad.FreeCAD.desktop"
+            ],
+            "confinement": "strict",
+            "created_at": "2024-11-03T02:14:02.389490+00:00",
+            "download": {
+                "deltas": [],
+                "sha3_384": "40927268327694f7208d16748742f3752cc7c5b017fe3aae2f4d419ffb42df974bff46a81224ab475b21ab3893804e1e",
+                "size": 824545280.0,
+                "url": "https://api.snapcraft.io/api/v1/snaps/download/6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB_1180.snap"
+            },
+            "epoch": {
+                "read": [
+                    0.0
+                ],
+                "write": [
+                    0.0
+                ]
+            },
+            "resources": [],
+            "revision": 1180,
+            "snap_yaml": "name: freecad\nversion: 1.1-g8865450a\nsummary: An open source parametric 3D CAD modeler\ndescription: |\n  FreeCAD is a parametric 3D modeler. Parametric modeling\n  allows you to easily modify your design by going back into\n  your model history and changing its parameters. FreeCAD is\n  open source (LGPL license) and completely modular, allowing\n  for very advanced extension and customization.\n\n  FreeCAD is multiplatfom, and reads and writes many open\n  file formats such as STEP, IGES, STL and others.\n\n  Please also consider RealThunder's well-known FreeCAD fork\n  `freecad-realthunder`: https://snapcraft.io/freecad-realthunder\n\n  Commands:\n        freecad:      Run FreeCAD\n        freecad.cmd:  Run FreeCAD command line interface\n        freecad.pip:  Install python packages for user (not system-wide).\n                      E.g. `freecad.pip install py_slvs` for Assembly3.\nlicense: LGPL-2.0-or-later\narchitectures:\n- amd64\nbase: core22\nassumes:\n- command-chain\n- snapd2.43\n- snapd2.55.3\napps:\n  freecad:\n    command: usr/bin/FreeCAD\n    common-id: org.freecad.FreeCAD.desktop\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  cmd:\n    command: usr/bin/FreeCADCmd\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  pip:\n    command: bin/pip\n    plugs:\n    - home\n    - opengl\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\nconfinement: strict\ngrade: devel\nenvironment:\n  LD_LIBRARY_PATH: $SNAP/usr/lib/:$SNAP/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib:/$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$LD_LIBRARY_PATH\n  LD_PRELOAD: $SNAP/usr/lib/x86_64-linux-gnu/libstubchown.so\n  FREECAD_USER_HOME: $SNAP_USER_COMMON\n  GIT_EXEC_PATH: $SNAP/usr/lib/git-core\n  GIT_TEMPLATE_DIR: $SNAP/usr/share/git-core/templates\n  GIT_CONFIG_NOSYSTEM: '1'\n  ELMER_HOME: $SNAP/usr\n  PYTHONPYCACHEPREFIX: $SNAP_USER_COMMON/.pycache\n  PYTHONUSERBASE: $SNAP_USER_COMMON/.local\n  PIP_USER: '1'\n  PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  SNAP_PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  QT_QPA_PLATFORM: xcb\n  POVINI: $SNAP/etc/povray/3.7/povray.ini\n  SNAP_DESKTOP_RUNTIME: $SNAP/kf5\n  PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH\nplugs:\n  foo-install-cups:\n    content: foo\n    interface: content\n    target: $SNAP_DATA/foo\n    default-provider: cups\n  shared-memory:\n    private: true\n  kf5-5-108-qt-5-15-10-core22:\n    content: kf5-5-108-qt-5-15-10-core22-all\n    interface: content\n    target: $SNAP/kf5\n    default-provider: kf5-5-108-qt-5-15-10-core22\n  desktop:\n    mount-host-font-cache: false\n  icon-themes:\n    interface: content\n    target: $SNAP/data-dir/icons\n    default-provider: gtk-common-themes\n  sound-themes:\n    interface: content\n    target: $SNAP/data-dir/sounds\n    default-provider: gtk-common-themes\nhooks:\n  configure:\n    command-chain:\n    - snap/command-chain/hooks-configure-desktop\n    plugs:\n    - desktop\nlayout:\n  /usr/share/X11:\n    symlink: $SNAP/kf5/usr/share/X11\n  /usr/share/libdrm/amdgpu.ids:\n    bind-file: $SNAP/kf5/usr/share/libdrm/amdgpu.ids\n  /usr/bin/mpirun:\n    symlink: $SNAP/usr/bin/orterun\n  /usr/share/openmpi:\n    symlink: $SNAP/usr/share/openmpi\n  /etc/openmpi:\n    bind: $SNAP/etc/openmpi\n  /usr/lib/x86_64-linux-gnu/openmpi:\n    bind: $SNAP/usr/lib/x86_64-linux-gnu/openmpi\n  /usr/bin/orted:\n    symlink: $SNAP/usr/bin/orted\n  /usr/share/pmix:\n    symlink: $SNAP/usr/share/pmix\n  /usr/lib/x86_64-linux-gnu/pmix:\n    symlink: $SNAP/usr/lib/x86_64-linux-gnu/pmix\n  /etc/matplotlibrc:\n    bind-file: $SNAP/etc/matplotlibrc\n  /usr/share/matplotlib:\n    symlink: $SNAP/usr/share/matplotlib\n  /usr/share/qt5:\n    symlink: $SNAP/kf5/usr/share/qt5\n  /usr/bin/dot:\n    symlink: $SNAP/usr/bin/dot\n  /usr/bin/unflatten:\n    symlink: $SNAP/usr/bin/unflatten\n  /usr/share/povray-3.7:\n    symlink: $SNAP/usr/share/povray-3.7\nlinks:\n  donation:\n  - https://wiki.freecad.org/Donate\n  issues:\n  - https://github.com/FreeCAD/FreeCAD-snap/issues\n  website:\n  - https://freecad.org\n",
+            "type": "app",
+            "version": "1.1-g8865450a"
+        },
+        {
+            "architectures": [
+                "amd64"
+            ],
+            "base": "core22",
+            "channel": {
+                "architecture": "amd64",
+                "name": "edge",
+                "released_at": "2024-11-06T02:13:39.806612+00:00",
+                "risk": "edge",
+                "track": "latest"
+            },
+            "common_ids": [
+                "org.freecad.FreeCAD.desktop"
+            ],
+            "confinement": "strict",
+            "created_at": "2024-11-06T02:06:49.311325+00:00",
+            "download": {
+                "deltas": [],
+                "sha3_384": "906b4ceaf6448d8ef0b78d95a6136a41cecee2b5fdb7ca320a988792e28bdf6beb710da135cd716d93f0600b5b17ce88",
+                "size": 824557568.0,
+                "url": "https://api.snapcraft.io/api/v1/snaps/download/6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB_1183.snap"
+            },
+            "epoch": {
+                "read": [
+                    0.0
+                ],
+                "write": [
+                    0.0
+                ]
+            },
+            "resources": [],
+            "revision": 1183,
+            "snap_yaml": "name: freecad\nversion: 1.1-ge0cf31b2\nsummary: An open source parametric 3D CAD modeler\ndescription: |\n  FreeCAD is a parametric 3D modeler. Parametric modeling\n  allows you to easily modify your design by going back into\n  your model history and changing its parameters. FreeCAD is\n  open source (LGPL license) and completely modular, allowing\n  for very advanced extension and customization.\n\n  FreeCAD is multiplatfom, and reads and writes many open\n  file formats such as STEP, IGES, STL and others.\n\n  Please also consider RealThunder's well-known FreeCAD fork\n  `freecad-realthunder`: https://snapcraft.io/freecad-realthunder\n\n  Commands:\n        freecad:      Run FreeCAD\n        freecad.cmd:  Run FreeCAD command line interface\n        freecad.pip:  Install python packages for user (not system-wide).\n                      E.g. `freecad.pip install py_slvs` for Assembly3.\nlicense: LGPL-2.0-or-later\narchitectures:\n- amd64\nbase: core22\nassumes:\n- command-chain\n- snapd2.43\n- snapd2.55.3\napps:\n  freecad:\n    command: usr/bin/FreeCAD\n    common-id: org.freecad.FreeCAD.desktop\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  cmd:\n    command: usr/bin/FreeCADCmd\n    plugs:\n    - desktop\n    - desktop-legacy\n    - opengl\n    - wayland\n    - x11\n    - home\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\n    command-chain:\n    - snap/command-chain/desktop-launch\n  pip:\n    command: bin/pip\n    plugs:\n    - home\n    - opengl\n    - removable-media\n    - gsettings\n    - network\n    - browser-support\n    - unity7\n    - cups\n    - shared-memory\nconfinement: strict\ngrade: devel\nenvironment:\n  LD_LIBRARY_PATH: $SNAP/usr/lib/:$SNAP/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib/x86_64-linux-gnu/:$SNAP/kf5/usr/lib:/$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$LD_LIBRARY_PATH\n  LD_PRELOAD: $SNAP/usr/lib/x86_64-linux-gnu/libstubchown.so\n  FREECAD_USER_HOME: $SNAP_USER_COMMON\n  GIT_EXEC_PATH: $SNAP/usr/lib/git-core\n  GIT_TEMPLATE_DIR: $SNAP/usr/share/git-core/templates\n  GIT_CONFIG_NOSYSTEM: '1'\n  ELMER_HOME: $SNAP/usr\n  PYTHONPYCACHEPREFIX: $SNAP_USER_COMMON/.pycache\n  PYTHONUSERBASE: $SNAP_USER_COMMON/.local\n  PIP_USER: '1'\n  PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  SNAP_PYTHONPATH: $PYTHONUSERBASE/lib/python3.10/site-packages:$SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages\n  QT_QPA_PLATFORM: xcb\n  POVINI: $SNAP/etc/povray/3.7/povray.ini\n  SNAP_DESKTOP_RUNTIME: $SNAP/kf5\n  PATH: $SNAP/usr/sbin:$SNAP/usr/bin:$SNAP/sbin:$SNAP/bin:$PATH\nplugs:\n  foo-install-cups:\n    content: foo\n    interface: content\n    target: $SNAP_DATA/foo\n    default-provider: cups\n  shared-memory:\n    private: true\n  kf5-5-108-qt-5-15-10-core22:\n    content: kf5-5-108-qt-5-15-10-core22-all\n    interface: content\n    target: $SNAP/kf5\n    default-provider: kf5-5-108-qt-5-15-10-core22\n  desktop:\n    mount-host-font-cache: false\n  icon-themes:\n    interface: content\n    target: $SNAP/data-dir/icons\n    default-provider: gtk-common-themes\n  sound-themes:\n    interface: content\n    target: $SNAP/data-dir/sounds\n    default-provider: gtk-common-themes\nhooks:\n  configure:\n    command-chain:\n    - snap/command-chain/hooks-configure-desktop\n    plugs:\n    - desktop\nlayout:\n  /usr/share/X11:\n    symlink: $SNAP/kf5/usr/share/X11\n  /usr/share/libdrm/amdgpu.ids:\n    bind-file: $SNAP/kf5/usr/share/libdrm/amdgpu.ids\n  /usr/bin/mpirun:\n    symlink: $SNAP/usr/bin/orterun\n  /usr/share/openmpi:\n    symlink: $SNAP/usr/share/openmpi\n  /etc/openmpi:\n    bind: $SNAP/etc/openmpi\n  /usr/lib/x86_64-linux-gnu/openmpi:\n    bind: $SNAP/usr/lib/x86_64-linux-gnu/openmpi\n  /usr/bin/orted:\n    symlink: $SNAP/usr/bin/orted\n  /usr/share/pmix:\n    symlink: $SNAP/usr/share/pmix\n  /usr/lib/x86_64-linux-gnu/pmix:\n    symlink: $SNAP/usr/lib/x86_64-linux-gnu/pmix\n  /etc/matplotlibrc:\n    bind-file: $SNAP/etc/matplotlibrc\n  /usr/share/matplotlib:\n    symlink: $SNAP/usr/share/matplotlib\n  /usr/share/qt5:\n    symlink: $SNAP/kf5/usr/share/qt5\n  /usr/bin/dot:\n    symlink: $SNAP/usr/bin/dot\n  /usr/bin/unflatten:\n    symlink: $SNAP/usr/bin/unflatten\n  /usr/share/povray-3.7:\n    symlink: $SNAP/usr/share/povray-3.7\nlinks:\n  donation:\n  - https://wiki.freecad.org/Donate\n  issues:\n  - https://github.com/FreeCAD/FreeCAD-snap/issues\n  website:\n  - https://freecad.org\n",
+            "type": "app",
+            "version": "1.1-ge0cf31b2"
+        }
+    ],
+    "default_track": null,
+    "error_list": null,
+    "name": "freecad",
+    "snap": {
+        "categories": [
+            {
+                "description": null,
+                "media": null,
+                "name": "art-and-design",
+                "summary": null,
+                "title": null,
+                "type": null,
+                "featured": true
+            },
+            {
+                "description": null,
+                "media": null,
+                "name": "featured",
+                "summary": null,
+                "title": null,
+                "type": null,
+                "featured": true
+            },
+            {
+                "description": null,
+                "media": null,
+                "name": "science",
+                "summary": null,
+                "title": null,
+                "type": null,
+                "featured": false
+            }
+        ],
+        "contact": "https://forum.freecad.org/viewtopic.php?f=42&t=68714",
+        "description": "FreeCAD is a parametric 3D modeler. Parametric modeling\nallows you to easily modify your design by going back into\nyour model history and changing its parameters. FreeCAD is\nopen source (LGPL license) and completely modular, allowing\nfor very advanced extension and customization.\n\nFreeCAD is multiplatfom, and reads and writes many open\nfile formats such as STEP, IGES, STL and others.\n\n**Channels**\n\nThere are three maintained channels for this snap:\n\n- `stable` contains the latest upstream release, i.e. the most recent tagged commit. (**Use this if you don't know what you're doing.**)\n- `beta` contains automated weekly promotions from `edge`. (**Use this if you want edge with fewer updates.**)\n- `edge` contains automated (daily) builds from the latest master commit. (**Use this to test new features. Might be unstable.**)\n\n**Apps/Commands**\n\nThere are multiple apps/commands included in the snap:\n\n- `freecad`:               Run FreeCAD\n- `freecad.cmd`:      Run FreeCAD command line interface\n- `freecad.pip`:        Install python packages for user (not system-wide).  \n                       E.g. `freecad.pip install py_slvs` for Assembly3. \n\n\nSide note: There is a FreeCAD experimental branch called 'Link branch' created by a user named 'realthunder' that has become popular. It is available as a Snap package named `freecad-realthunder` (https://snapcraft.io/freecad-realthunder).",
+        "gated_snap_ids": [],
+        "license": "LGPL-2.0",
+        "links": {
+            "contact": [
+                "https://forum.freecad.org/viewtopic.php?f=42&t=68714"
+            ],
+            "donations": [
+                "https://wiki.freecad.org/Donate"
+            ],
+            "issues": [
+                "https://github.com/FreeCAD/FreeCAD/issues"
+            ],
+            "source": [
+                "https://github.com/FreeCAD/FreeCAD"
+            ],
+            "website": [
+                "https://www.freecad.org"
+            ]
+        },
+        "media": [
+            {
+                "height": 308.0,
+                "type": "banner",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2020/06/freecad2.png",
+                "width": 924.0
+            },
+            {
+                "height": 512.0,
+                "type": "icon",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/FreeCAD_Logo.svg.png",
+                "width": 512.0
+            },
+            {
+                "height": 1681.0,
+                "type": "screenshot",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/bim-1727182759.png",
+                "width": 2736.0
+            },
+            {
+                "height": 1683.0,
+                "type": "screenshot",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/bim-dark-1727271900.png",
+                "width": 2736.0
+            },
+            {
+                "height": 1683.0,
+                "type": "screenshot",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/assembly-1727182759.png",
+                "width": 2736.0
+            },
+            {
+                "height": 1682.0,
+                "type": "screenshot",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/fem-1727182759.png",
+                "width": 2736.0
+            },
+            {
+                "height": 1683.0,
+                "type": "screenshot",
+                "url": "https://dashboard.snapcraft.io/site_media/appmedia/2024/09/partdesign-1727182759.png",
+                "width": 2736.0
+            }
+        ],
+        "name": "freecad",
+        "prices": {},
+        "private": false,
+        "publisher": {
+            "display_name": "FreeCAD",
+            "id": "nbM3ZPW49wgmlSh0OwD2wYDVLh2iUXth",
+            "username": "freecad-org",
+            "validation": "unproven"
+        },
+        "snap_id": "6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB",
+        "store_url": "https://snapcraft.io/freecad",
+        "summary": "An open source parametric 3D CAD modeler",
+        "title": "FreeCAD",
+        "trending": false,
+        "unlisted": false,
+        "website": null
+    },
+    "snap_id": "6gjU50q0lEDaMTtSUxYoVDSmjR5fERpB"
+}

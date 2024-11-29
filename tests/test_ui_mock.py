@@ -2,13 +2,13 @@ import pathlib
 from unittest.mock import AsyncMock
 
 import pytest
-
-from store_tui.api.snaps import SnapsAPI
-from store_tui.main import SnapStoreTUI
-from store_tui.schemas.snaps.categories import (
+from snap_python.client import SnapClient
+from snap_python.schemas.store.categories import (
     CategoryResponse,
 )
-from store_tui.schemas.snaps.search import SearchResponse
+from snap_python.schemas.store.search import SearchResponse
+
+from store_tui.main import SnapStoreTUI
 
 TESTS_DIR = pathlib.Path(__file__).parent
 TESTS_DATA_DIR = TESTS_DIR / "data"
@@ -16,19 +16,19 @@ TESTS_DATA_DIR = TESTS_DIR / "data"
 
 @pytest.fixture
 def mocked_snaps_api():
-    snaps_api = SnapsAPI(
-        base_url="https://api.snapcraft.io",
+    snaps_api = SnapClient(
+        store_base_url="https://api.snapcraft.io",
         version="v2",
-        headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
-    )
-    snaps_api.get_categories = AsyncMock(spec=SnapsAPI.get_categories)
+        store_headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
+    ).store
+    snaps_api.get_categories = AsyncMock(spec=snaps_api.get_categories)
     with open(TESTS_DATA_DIR / "categories_response.json") as f:
         snaps_api.get_categories.return_value = CategoryResponse.model_validate_json(
             f.read()
         )
 
     snaps_api.get_top_snaps_from_category = AsyncMock(
-        spec=SnapsAPI.get_top_snaps_from_category
+        spec=snaps_api.get_top_snaps_from_category
     )
     with open(TESTS_DATA_DIR / "featured_snaps_response.json") as f:
         snaps_api.get_top_snaps_from_category.return_value = (

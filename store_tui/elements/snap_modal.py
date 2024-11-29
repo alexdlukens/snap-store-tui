@@ -4,32 +4,32 @@ from pathlib import Path
 import httpx
 import humanize
 from rich_pixels import Pixels
-from textual import work
+from snap_python.client import SnapClient
+from snap_python.schemas.store.info import InfoResponse
+from snap_python.schemas.store.search import Media
+from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Static, TextArea
 
-from store_tui.api.snaps import SnapsAPI
 from store_tui.elements.clickable_link import ClickableLink
 from store_tui.elements.install_modal import InstallModal
 from store_tui.elements.utils import get_platform_architecture
-from store_tui.schemas.snaps.info import InfoResponse
-from store_tui.schemas.snaps.search import Media
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
-PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
 
 BASE_DIR = Path(__file__).parent.parent.parent
-TEST_DIR = BASE_DIR / "tests"
-TEST_DATA_DIR = TEST_DIR / "data"
-PLACEHOLDER_ICON_FILEPATH = TEST_DATA_DIR / "placeholder_image.jpeg"
+SCHEMAS_DIR = BASE_DIR / "store_tui" / "schemas"
+PLACEHOLDER_ICON_FILEPATH = SCHEMAS_DIR / "images" / "placeholder.png"
 
 
 class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close"), ("tab", "modify", "Install/Modify")}
+    BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
 
-    def __init__(self, snap_name: str, api: SnapsAPI, snap_info: InfoResponse) -> None:
+    def __init__(
+        self, snap_name: str, api: SnapClient, snap_info: InfoResponse
+    ) -> None:
         super().__init__()
         self.snap_name = snap_name
         self.api = api
@@ -43,14 +43,18 @@ class SnapModal(ModalScreen):
         try:
             self.download_icon()
         except Exception:
-            # download fails for some reason
-            # use placeholder image
             self.icon_obj = Pixels.from_image_path(
                 PLACEHOLDER_ICON_FILEPATH, resize=(16, 16)
             )
-            pass
 
         self.supported_architectures = self.get_architectures()
+        self.install_button = Button(
+            "Install/Modify", classes="install-button", id="install-button"
+        )
+
+    @on(Button.Pressed, "#install-button")
+    async def install_button_pressed(self):
+        self.action_modify()
 
     @work
     async def action_modify(self):
@@ -81,10 +85,10 @@ class SnapModal(ModalScreen):
 
     def download_icon(self):
         """download icon for snap using icon_url and create a Pixels object"""
-        if self.snap.media:
-            icon_url = self.get_icon_url(self.snap.media)
-        else:
-            icon_url = PLACEHOLDER_ICON_URL
+        icon_url = self.get_icon_url(self.snap.media)
+        if icon_url is None:
+            raise ValueError("Icon URL not found")
+
         self.icon_obj = None
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             icon_path = Path(f.name)
@@ -96,7 +100,7 @@ class SnapModal(ModalScreen):
         for media_obj in media:
             if media_obj.type == "icon":
                 return media_obj.url
-        return PLACEHOLDER_ICON_URL
+        return None
 
     def compose(self):
         yield Horizontal(
@@ -110,7 +114,7 @@ class SnapModal(ModalScreen):
                 classes="title-container",
             ),
             Vertical(
-                Button("Install/Modify", classes="install-button"),
+                self.install_button,
                 classes="button-container",
             ),
             classes="top-row",
@@ -122,7 +126,7 @@ class SnapModal(ModalScreen):
         yield Horizontal(
             Vertical(
                 Label("Description"),
-                TextArea(self.snap.description, read_only=True),
+                TextArea(self.snap.description, read_only=True, id="description-box"),
                 classes="description-box",
             ),  # description
             VerticalScroll(
@@ -164,3 +168,6 @@ class SnapModal(ModalScreen):
             classes="main-row",
         )
         yield Footer(show_command_palette=False)
+
+    def on_mount(self):
+        self.set_focus(self.get_widget_by_id("description-box"))

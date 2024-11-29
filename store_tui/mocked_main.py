@@ -1,13 +1,14 @@
 import pathlib
 from unittest.mock import AsyncMock
 
-from store_tui.api.snaps import SnapsAPI
-from store_tui.main import SnapStoreTUI
-from store_tui.schemas.snaps.categories import (
+from snap_python.schemas.store.categories import (
     CategoryResponse,
 )
-from store_tui.schemas.snaps.info import InfoResponse
-from store_tui.schemas.snaps.search import SearchResponse
+from snap_python.schemas.store.info import InfoResponse
+from snap_python.schemas.store.search import SearchResponse
+
+from store_tui.api.snaps import SnapsAPI
+from store_tui.main import SnapStoreTUI
 
 TESTS_DIR = pathlib.Path(__file__).parent.parent / "tests"
 TESTS_DATA_DIR = TESTS_DIR / "data"
