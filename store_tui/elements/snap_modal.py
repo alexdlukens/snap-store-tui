@@ -5,6 +5,8 @@ import httpx
 import humanize
 from rich_pixels import Pixels
 from snap_python.client import SnapClient
+from snap_python.schemas.common import BaseErrorResult
+from snap_python.schemas.snaps import SingleSnapResponse
 from snap_python.schemas.store.info import InfoResponse
 from snap_python.schemas.store.search import Media
 from textual import on, work
@@ -28,13 +30,25 @@ class SnapModal(ModalScreen):
     BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
 
     def __init__(
-        self, snap_name: str, api: SnapClient, snap_info: InfoResponse
+        self,
+        snap_name: str,
+        api: SnapClient,
+        snap_info: InfoResponse,
+        snap_install_data: SingleSnapResponse | None,
     ) -> None:
         super().__init__()
         self.snap_name = snap_name
         self.api = api
         self.snap_info = snap_info
         self.snap = self.snap_info.snap
+        self.snap_install_data = snap_install_data
+
+        if self.snap_install_data is None:
+            self.snap_install_message = "Installed: 🚫 (snapd unaccessible)"
+        elif isinstance(self.snap_install_data.result, BaseErrorResult):
+            self.snap_install_message = "Installed: ❌"
+        else:
+            self.snap_install_message = f"Installed: ✅"
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
@@ -136,6 +150,7 @@ class SnapModal(ModalScreen):
                     classes="details-item",
                     shrink=True,
                 ),
+                Label(self.snap_install_message, classes="details-item", shrink=True),
                 Label(
                     f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
                     classes="details-item",

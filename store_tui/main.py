@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -49,6 +50,7 @@ class SnapStoreTUI(App):
         )
         self.header = Header()
         self.header.tall = False
+        self.snapd_api_available = False
 
     def compose(self) -> ComposeResult:
         yield self.header
@@ -97,6 +99,13 @@ class SnapStoreTUI(App):
         self.data_table.loading = True
         self.call_after_refresh(self.init_main_screen)
 
+        # check snapd api access
+        try:
+            await self.api.ping()
+            self.snapd_api_available = True
+        except Exception as e:
+            self.snapd_api_available = False
+
     async def init_main_screen(self):
         try:
             categories_response = await self.api.store.get_categories()
@@ -125,19 +134,31 @@ class SnapStoreTUI(App):
         snap_row_key = row_selected.row_key.value
         try:
             self.data_table.loading = True
-            snap_info = await self.api.store.retry_get_snap_info(
+            if self.snapd_api_available:
+                snap_install_data = self.api.snaps.get_snap_info(snap_row_key)
+            else:
+                # empty await
+                snap_install_data = asyncio.sleep(0)
+            snap_info = self.api.store.retry_get_snap_info(
                 snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
+            )
+            snap_install_data, snap_info = await asyncio.gather(
+                snap_install_data, snap_info
             )
         except Exception as e:
             self.push_screen(ErrorModal(e, error_title="Error - retrieving snap info"))
             snap_info = None
+            snap_install_data = None
         finally:
             self.data_table.loading = False
 
         if snap_info is None:
             return
         snap_modal = SnapModal(
-            snap_name=snap_row_key, api=self.api, snap_info=snap_info
+            snap_name=snap_row_key,
+            api=self.api,
+            snap_info=snap_info,
+            snap_install_data=snap_install_data,
         )
         self.push_screen(snap_modal)
 
