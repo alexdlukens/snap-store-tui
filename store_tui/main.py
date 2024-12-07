@@ -126,13 +126,6 @@ class SnapStoreTUI(App):
         self.data_table.loading = True
         self.call_after_refresh(self.init_main_screen)
 
-        # check snapd api access
-        try:
-            await self.api.ping()
-            self.snapd_api_available = True
-        except Exception:
-            self.snapd_api_available = False
-
     async def init_main_screen(self):
         try:
             categories_response = await self.api.store.get_categories()
@@ -155,6 +148,13 @@ class SnapStoreTUI(App):
         await self.data_table.update_table(top_snaps=top_snaps)
         if self.data_table.row_count > 0:
             self.data_table.focus()
+
+        # check snapd api access
+        try:
+            await self.api.ping()
+            self.snapd_api_available = True
+        except Exception:
+            self.snapd_api_available = False
 
     @on(DataTable.RowSelected)
     async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):

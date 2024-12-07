@@ -10,8 +10,8 @@ Designed using the "Textual" Python Library - https://github.com/textualize/text
 - [✅] Search for Snaps
 - [✅] View Snap Details
 - [✅] Open Store URL in Browser
+- [✅] View Installed Snaps
 - [❌] Install/Modify Snaps directly from the TUI
-- [❌] View Installed Snaps
 - [❌] View Snap Channels and Revisions
 - [❌] Sort and Filter Snaps
 
