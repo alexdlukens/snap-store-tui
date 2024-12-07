@@ -5,7 +5,7 @@ from pathlib import Path
 from snap_python.client import SnapClient
 from snap_python.schemas.store.categories import CategoryResponse
 from snap_python.schemas.store.info import VALID_SNAP_INFO_FIELDS
-from snap_python.schemas.store.search import SearchResponse, SearchResult
+from snap_python.schemas.store.search import SearchResponse
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
@@ -17,6 +17,7 @@ from store_tui.elements.position_count import PositionCount
 from store_tui.elements.search_modal import SnapSearchModal
 from store_tui.elements.snap_modal import SnapModal
 from store_tui.elements.snap_result_table import SnapResultTable
+from store_tui.elements.utils import convert_snaps_to_search_response
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class SnapStoreTUI(App):
         ("q", "quit", "Quit"),
         ("c", "choose_category", "Category"),
         ("s", "search_snaps", "Search"),
+        ("i", "list_installed_snaps", "Installed"),
     ]
     CSS_PATH = Path(__file__).parent / "styles" / "main.tcss"
 
@@ -93,9 +95,20 @@ class SnapStoreTUI(App):
 
     @work
     async def action_list_installed_snaps(self):
+        if not self.snapd_api_available:
+            self.push_screen(
+                ErrorModal(
+                    ConnectionError(
+                        "Snapd API not available - need snapd-control interface connected"
+                    ),
+                    error_title="Error - listing installed snaps",
+                )
+            )
+            return
+
         try:
             installed_snaps = await self.api.snaps.list_installed_snaps()
-            installed_snaps = convert_snaps_to_search_response(installed_snaps)
+            installed_snaps = convert_snaps_to_search_response(installed_snaps.result)
         except Exception as e:
             self.push_screen(
                 ErrorModal(e, error_title="Error - listing installed snaps")
@@ -103,10 +116,6 @@ class SnapStoreTUI(App):
             installed_snaps = []
 
         if installed_snaps:
-            # trigger data table update with installed snaps
-            search_response = SearchResponse(
-                results=[SearchResult(name=snap) for snap in installed_snaps.result]
-            )
             await self.data_table.update_table(top_snaps=installed_snaps)
 
     def update_title(self):
@@ -121,7 +130,7 @@ class SnapStoreTUI(App):
         try:
             await self.api.ping()
             self.snapd_api_available = True
-        except Exception as e:
+        except Exception:
             self.snapd_api_available = False
 
     async def init_main_screen(self):

@@ -5,10 +5,9 @@ import httpx
 import humanize
 from rich_pixels import Pixels
 from snap_python.client import SnapClient
-from snap_python.schemas.common import BaseErrorResult
-from snap_python.schemas.snaps import SingleSnapResponse
+from snap_python.schemas.common import BaseErrorResult, Media
+from snap_python.schemas.snaps import SingleInstalledSnapResponse
 from snap_python.schemas.store.info import InfoResponse
-from snap_python.schemas.store.search import Media
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -27,14 +26,14 @@ PLACEHOLDER_ICON_FILEPATH = SCHEMAS_DIR / "images" / "placeholder.png"
 
 class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
+    BINDINGS = [("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")]
 
     def __init__(
         self,
         snap_name: str,
         api: SnapClient,
         snap_info: InfoResponse,
-        snap_install_data: SingleSnapResponse | None,
+        snap_install_data: SingleInstalledSnapResponse | None,
     ) -> None:
         super().__init__()
         self.snap_name = snap_name
@@ -48,7 +47,12 @@ class SnapModal(ModalScreen):
         elif isinstance(self.snap_install_data.result, BaseErrorResult):
             self.snap_install_message = "Installed: ❌"
         else:
-            self.snap_install_message = f"Installed: ✅"
+            installed_version = (
+                f"v{self.snap_install_data.result.version}"
+                if self.snap_install_data.result.version
+                else f"rev. {self.snap_install_data.result.revision}"
+            )
+            self.snap_install_message = f"Installed: ✅ ({installed_version})"
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
