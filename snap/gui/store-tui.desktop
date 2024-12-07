@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=store-tui
+Comment=TUI interface for searching the Snap store & managing snaps
+Exec=store-tui
+Icon=${SNAP}/meta/gui/store-tui.png
+Terminal=true
+Type=Application
+Categories=Utility;Development;
