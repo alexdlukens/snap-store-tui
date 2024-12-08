@@ -3,10 +3,12 @@ from pathlib import Path
 from snap_python.client import SnapClient
 from snap_python.schemas.snaps import InstalledSnap, SingleInstalledSnapResponse
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
+from textual import on
 from textual.containers import Container, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Footer, Placeholder
+from textual.widgets import Footer, Label, ListItem, ListView, Placeholder
 
+from store_tui.elements.snap_channel_tree import SnapChannelTree
 from store_tui.elements.utils import get_platform_architecture
 
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "install_modal.tcss"
@@ -37,7 +39,23 @@ class InstallModal(ModalScreen):
         self.snap_install_data = snap_install_data
         self.api = api
         self.current_architecture = get_platform_architecture()
+        self.channel_info = self.organize_channel_tree()
+        self.current_arch_channels = {
+            f"{channel.channel.track}/{channel.channel.name}": channel
+            for channel in self.channel_info.get(self.current_architecture, list())
+        }
+        self.sorted_channel_names = sorted(
+            self.current_arch_channels.keys(),
+            key=lambda x: self.current_arch_channels[x].channel.released_at,
+            reverse=True,
+        )
+        self.available_channels = [
+            ListItem(Label(channel), name=channel)
+            for channel in self.sorted_channel_names
+        ]
+        self.channel_list = ListView(*self.available_channels)
 
+        self.channel_tree = SnapChannelTree(self.current_arch_channels["latest/stable"])
         if not self.snap_info:
             self.is_installed = False
         elif isinstance(snap_install_data.result, InstalledSnap):
@@ -47,6 +65,12 @@ class InstallModal(ModalScreen):
 
     def action_install_snap(self):
         pass
+
+    @on(ListView.Selected)
+    @on(ListView.Highlighted)
+    def channel_list_selected(self, selected_item: ListView.Selected):
+        channel_item = selected_item.item
+        self.channel_tree.update_tree(self.current_arch_channels[channel_item.name])
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
         """Organize channels by architecture, then track"""
@@ -70,10 +94,14 @@ class InstallModal(ModalScreen):
 
     def compose(self):
         yield Horizontal(
-            Placeholder("channel-list", classes="channel-list"),
+            Container(
+                Label(f"Channels - {self.current_architecture}", expand=True),
+                self.channel_list,
+                classes="channel-list",
+            ),
             Container(
                 Horizontal(
-                    Placeholder("snap-details", classes="snap-channel-info"),
+                    self.channel_tree,
                     Container(
                         Placeholder("snap-settings", classes="snap-settings-box"),
                         Placeholder(
