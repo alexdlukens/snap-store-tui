@@ -1,0 +1,40 @@
+.channel-list {
+    height: 100%;
+    width: 25%
+}
+
+.main-content {
+    height: 100%;
+    width: 75%
+}
+
+.snap-settings {
+    height:100%;
+    width: 50%;
+}
+
+.snap-settings-box {
+    height:70%;
+    width: 100%;
+}
+
+.snap-install-buttons {
+    height:30%;
+    width: 100%;
+}
+
+.snap-details {
+    height:85%;
+    width: 100%;
+}
+
+.snap-channel-info {
+    height:100%;
+    width: 50%;
+}
+
+.progress-bar {
+    width: 100%;
+    padding-top: 0;
+    height: 3;
+}

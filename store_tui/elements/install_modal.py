@@ -1,14 +1,15 @@
 from pathlib import Path
 
-import humanize
+from snap_python.client import SnapClient
+from snap_python.schemas.snaps import InstalledSnap, SingleInstalledSnapResponse
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
+from textual.containers import Container, Horizontal
 from textual.screen import ModalScreen
-from textual.widgets import Footer, Tree
+from textual.widgets import Footer, Placeholder
 
 from store_tui.elements.utils import get_platform_architecture
 
-MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "snap_modal.tcss"
-PLACEHOLDER_ICON_URL = "https://placehold.co/64/white/black/png?text=?&font=roboto"
+MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "install_modal.tcss"
 
 
 class InstallModal(ModalScreen):
@@ -25,40 +26,27 @@ class InstallModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
     BINDINGS = {("q", "dismiss", "Close")}
 
-    def __init__(self, snap_info: InfoResponse):
+    def __init__(
+        self,
+        snap_info: InfoResponse,
+        snap_install_data: SingleInstalledSnapResponse | None,
+        api: SnapClient,
+    ) -> None:
         super().__init__()
         self.snap_info = snap_info
+        self.snap_install_data = snap_install_data
+        self.api = api
         self.current_architecture = get_platform_architecture()
-        self.build_channel_tree()
 
-    def build_channel_tree(self):
-        self.channel_tree = Tree("Channels")
-        self.channel_tree.root.expand()
-        self.organized_channel_tree = self.organize_channel_tree()
-        architectures = list(self.organized_channel_tree.keys())
+        if not self.snap_info:
+            self.is_installed = False
+        elif isinstance(snap_install_data.result, InstalledSnap):
+            self.is_installed = True
+        else:
+            self.is_installed = False
 
-        # move current architecture to the top if it exists
-        if self.current_architecture in architectures:
-            architectures.remove(self.current_architecture)
-            architectures.insert(0, self.current_architecture)
-
-        for arch in architectures:
-            channels = self.organized_channel_tree[arch]
-            arch_node = self.channel_tree.root.add(
-                arch, expand=True if self.current_architecture == arch else False
-            )
-            for channel in channels:
-                channel_node = arch_node.add(
-                    f"{channel.channel.track}/{channel.channel.risk}",
-                    expand=True if channel.channel.risk == "stable" else False,
-                )
-                channel_node.add(f"Revision: {channel.revision}")
-                channel_node.add(f"Size: {humanize.naturalsize(channel.download.size)}")
-                channel_node.add(f"Version: {channel.version}")
-                channel_node.add(
-                    f"Released: {humanize.naturaltime(channel.channel.released_at)} ({channel.channel.released_at})"
-                )
-                channel_node.add(f"Confinement: {channel.confinement}")
+    def action_install_snap(self):
+        pass
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
         """Organize channels by architecture, then track"""
@@ -81,5 +69,22 @@ class InstallModal(ModalScreen):
         return organized_channels
 
     def compose(self):
-        yield self.channel_tree
+        yield Horizontal(
+            Placeholder("channel-list", classes="channel-list"),
+            Container(
+                Horizontal(
+                    Placeholder("snap-details", classes="snap-channel-info"),
+                    Container(
+                        Placeholder("snap-settings", classes="snap-settings-box"),
+                        Placeholder(
+                            "snap-install-buttons", classes="snap-install-buttons"
+                        ),
+                        classes="snap-settings",
+                    ),
+                    classes="all-snap-details",
+                ),
+                Placeholder("progress-bar", classes="progress-bar"),
+                classes="main-content",
+            ),
+        )
         yield Footer()
