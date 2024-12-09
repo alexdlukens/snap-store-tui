@@ -16,15 +16,17 @@ class SnapChannelTree(Widget):
         self.channel = channel
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
         self.channel_tree = Tree(channel_name, classes="snap-channel-info")
+        self.channel_tree.styles.overflow_x = "hidden"
         self.channel_tree.root.expand()
         self.channel_tree.root.add(f"Revision: {channel.revision}")
         self.channel_tree.root.add(
             f"Size: {humanize.naturalsize(channel.download.size)}"
         )
         self.channel_tree.root.add(f"Version: {channel.version}")
-        self.channel_tree.root.add(
-            f"Released: {humanize.naturaltime(channel.channel.released_at)} ({channel.channel.released_at})"
+        release_node = self.channel_tree.root.add(
+            f"Released: {humanize.naturaltime(channel.channel.released_at)}"
         )
+        release_node.add(f"{channel.channel.released_at}")
         self.channel_tree.root.add(f"Confinement: {channel.confinement}")
 
         if self.is_mounted:

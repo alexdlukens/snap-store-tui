@@ -55,7 +55,12 @@ class InstallModal(ModalScreen):
         ]
         self.channel_list = ListView(*self.available_channels)
 
-        self.channel_tree = SnapChannelTree(self.current_arch_channels["latest/stable"])
+        # get selected channel from first value in channel names
+        selected_channel = self.sorted_channel_names[0]
+
+        self.channel_tree = SnapChannelTree(
+            self.current_arch_channels[selected_channel]
+        )
         if not self.snap_info:
             self.is_installed = False
         elif isinstance(snap_install_data.result, InstalledSnap):
