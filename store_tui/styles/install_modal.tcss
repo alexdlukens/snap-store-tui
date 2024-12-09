@@ -1,21 +1,22 @@
 .channel-list {
     height: 100%;
-    width: 25%
+    width: 20%
 }
 
 .main-content {
     height: 100%;
-    width: 75%
+    width: 80%
 }
 
 .snap-settings {
     height:100%;
-    width: 50%;
+    width: 60%;
 }
 
 .snap-settings-box {
     height:70%;
     width: 100%;
+    border: solid white;
 }
 
 .snap-install-buttons {
@@ -23,14 +24,14 @@
     width: 100%;
 }
 
-.snap-details {
+.all-snap-details {
     height:85%;
     width: 100%;
 }
 
 .snap-channel-info {
     height:100%;
-    width: auto;
+    width: 40%;
 }
 
 .progress-bar {

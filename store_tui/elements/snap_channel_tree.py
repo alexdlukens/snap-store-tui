@@ -15,7 +15,7 @@ class SnapChannelTree(Widget):
     def update_tree(self, channel: ChannelMapItem):
         self.channel = channel
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
-        self.channel_tree = Tree(channel_name, classes="snap-channel-info")
+        self.channel_tree = Tree(channel_name)
         self.channel_tree.styles.overflow_x = "hidden"
         self.channel_tree.root.expand()
         self.channel_tree.root.add_leaf(f"Revision: {channel.revision}")

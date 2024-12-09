@@ -4,9 +4,17 @@ from snap_python.client import SnapClient
 from snap_python.schemas.snaps import InstalledSnap, SingleInstalledSnapResponse
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
 from textual import on
-from textual.containers import Container, Horizontal
+from textual.containers import Container, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Footer, Label, ListItem, ListView, Placeholder
+from textual.widgets import (
+    Footer,
+    Label,
+    ListItem,
+    ListView,
+    Placeholder,
+    SelectionList,
+)
+from textual.widgets.selection_list import Selection
 
 from store_tui.elements.snap_channel_tree import SnapChannelTree
 from store_tui.elements.utils import get_platform_architecture
@@ -59,7 +67,8 @@ class InstallModal(ModalScreen):
         selected_channel = self.sorted_channel_names[0]
 
         self.channel_tree = SnapChannelTree(
-            self.current_arch_channels[selected_channel]
+            self.current_arch_channels[selected_channel],
+            classes="snap-channel-info",
         )
         if not self.snap_info:
             self.is_installed = False
@@ -68,7 +77,38 @@ class InstallModal(ModalScreen):
         else:
             self.is_installed = False
 
+        self.snap_settings_list = SelectionList(id="settings-list")
+        self.snap_settings_element = Vertical(
+            Label("Snap Install Settings"),
+            self.snap_settings_list,
+            classes="snap-settings-box",
+        )
+        self.update_snap_settings_list(self.current_arch_channels[selected_channel])
+
+    def update_snap_settings_list(self, channel: ChannelMapItem):
+        channel_name = f"{channel.channel.track}/{channel.channel.name}"
+        snap_settings_items = [
+            ("classic confinement", "classic"),
+            ("devmode", "devmode"),
+            ("jailmode", "jailmode"),
+            Selection(
+                f"channel: {channel_name}",
+                value=channel_name,
+                initial_state=True,
+                disabled=True,
+            ),
+        ]
+        self.snap_settings_list = SelectionList(
+            *snap_settings_items, id="settings-list"
+        )
+        self.snap_settings_element.remove("#settings-list")  # TODO This doesn't work
+        self.snap_settings_element._add_child(self.snap_settings_list)
+        self.snap_settings_element.refresh(recompose=True)
+
     def action_install_snap(self):
+        if self.is_installed:
+            raise Exception("already installed")
+        self.api.snaps.install_snap()
         pass
 
     @on(ListView.Selected)
@@ -76,6 +116,7 @@ class InstallModal(ModalScreen):
     def channel_list_selected(self, selected_item: ListView.Selected):
         channel_item = selected_item.item
         self.channel_tree.update_tree(self.current_arch_channels[channel_item.name])
+        self.update_snap_settings_list(self.current_arch_channels[channel_item.name])
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
         """Organize channels by architecture, then track"""
@@ -104,11 +145,11 @@ class InstallModal(ModalScreen):
                 self.channel_list,
                 classes="channel-list",
             ),
-            Container(
+            Vertical(
                 Horizontal(
                     self.channel_tree,
-                    Container(
-                        Placeholder("snap-settings", classes="snap-settings-box"),
+                    Vertical(
+                        self.snap_settings_element,
                         Placeholder(
                             "snap-install-buttons", classes="snap-install-buttons"
                         ),
