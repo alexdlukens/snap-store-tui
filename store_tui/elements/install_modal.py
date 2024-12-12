@@ -12,10 +12,10 @@ from textual.widgets import (
     ListItem,
     ListView,
     Placeholder,
-    SelectionList,
 )
 from textual.widgets.selection_list import Selection
 
+from store_tui.elements.settings_list import SettingsList
 from store_tui.elements.snap_channel_tree import SnapChannelTree
 from store_tui.elements.utils import get_platform_architecture
 
@@ -77,20 +77,29 @@ class InstallModal(ModalScreen):
         else:
             self.is_installed = False
 
-        self.snap_settings_list = SelectionList(id="settings-list")
+        self.snap_settings = SettingsList(id="settings-list")
         self.snap_settings_element = Vertical(
             Label("Snap Install Settings"),
-            self.snap_settings_list,
+            self.snap_settings,
             classes="snap-settings-box",
         )
-        self.update_snap_settings_list(self.current_arch_channels[selected_channel])
 
     def update_snap_settings_list(self, channel: ChannelMapItem):
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
+
+        classic_initial_state = False
+        if channel.confinement == "classic":
+            classic_initial_state = True
+
         snap_settings_items = [
-            ("classic confinement", "classic"),
-            ("devmode", "devmode"),
-            ("jailmode", "jailmode"),
+            Selection(
+                "classic confinement",
+                value="classic",
+                initial_state=classic_initial_state,
+            ),
+            Selection("dangerous", value="dangerous", initial_state=False),
+            Selection("devmode", value="devmode", initial_state=False),
+            Selection("jailmode", value="jailmode", initial_state=False),
             Selection(
                 f"channel: {channel_name}",
                 value=channel_name,
@@ -98,12 +107,7 @@ class InstallModal(ModalScreen):
                 disabled=True,
             ),
         ]
-        self.snap_settings_list = SelectionList(
-            *snap_settings_items, id="settings-list"
-        )
-        self.snap_settings_element.remove("#settings-list")  # TODO This doesn't work
-        self.snap_settings_element._add_child(self.snap_settings_list)
-        self.snap_settings_element.refresh(recompose=True)
+        self.snap_settings.update(snap_settings_items)
 
     def action_install_snap(self):
         if self.is_installed:
