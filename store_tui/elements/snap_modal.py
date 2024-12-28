@@ -78,7 +78,9 @@ class SnapModal(ModalScreen):
     async def action_modify(self):
         await self.app.push_screen(
             InstallModal(
-                self.snap_info, snap_install_data=self.snap_install_data, api=self.api
+                self.snap_info,
+                snap_install_data=self.snap_install_data,
+                api=self.api,
             ),
             wait_for_dismiss=True,
         )

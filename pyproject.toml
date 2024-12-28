@@ -16,7 +16,7 @@ rich-pixels = "^3.0.1"
 humanize = "^4.11.0"
 httpx = "^0.27.2"
 retry = "^0.9.2"
-snap-python = {git = "https://github.com/alexdlukens/snap-python.git", rev = "ec699e449168f969afbbac88525cdabdb04d56c4"}
+snap-python = {git = "https://github.com/alexdlukens/snap-python.git", rev = "b47e5c7534130142df18c2ddff756b93ed5e4619"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.5"

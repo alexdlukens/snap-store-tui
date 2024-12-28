@@ -6,15 +6,10 @@ from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
 from textual import on
 from textual.containers import Container, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import (
-    Footer,
-    Label,
-    ListItem,
-    ListView,
-    Placeholder,
-)
+from textual.widgets import Button, Footer, Label, ListItem, ListView, Placeholder
 from textual.widgets.selection_list import Selection
 
+from store_tui.elements.error_modal import ErrorModal
 from store_tui.elements.settings_list import SettingsList
 from store_tui.elements.snap_channel_tree import SnapChannelTree
 from store_tui.elements.utils import get_platform_architecture
@@ -64,18 +59,16 @@ class InstallModal(ModalScreen):
         self.channel_list = ListView(*self.available_channels)
 
         # get selected channel from first value in channel names
-        selected_channel = self.sorted_channel_names[0]
+        self.selected_channel = self.available_channels[0]
 
         self.channel_tree = SnapChannelTree(
-            self.current_arch_channels[selected_channel],
+            self.current_arch_channels[self.selected_channel.name],
             classes="snap-channel-info",
         )
-        if not self.snap_info:
-            self.is_installed = False
-        elif isinstance(snap_install_data.result, InstalledSnap):
+        self.is_installed = False
+
+        if self.snap_info and isinstance(snap_install_data.result, InstalledSnap):
             self.is_installed = True
-        else:
-            self.is_installed = False
 
         self.snap_settings = SettingsList(id="settings-list")
         self.snap_settings_element = Vertical(
@@ -83,6 +76,25 @@ class InstallModal(ModalScreen):
             self.snap_settings,
             classes="snap-settings-box",
         )
+        self.install_button = Button(
+            "Install",
+            classes="snap-install-buttons",
+            id="install-button",
+            disabled=self.is_installed,
+            variant="primary",
+        )
+        self.uninstall_button = Button(
+            "Uninstall",
+            id="uninstall-button",
+            classes="snap-install-buttons",
+            disabled=not self.is_installed,
+            variant="error",
+        )
+
+    def toggle_is_installed(self, installed: bool):
+        self.is_installed = installed
+        self.install_button.disabled = installed
+        self.uninstall_button.disabled = not installed
 
     def update_snap_settings_list(self, channel: ChannelMapItem):
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
@@ -109,18 +121,61 @@ class InstallModal(ModalScreen):
         ]
         self.snap_settings.update(snap_settings_items)
 
-    def action_install_snap(self):
-        if self.is_installed:
-            raise Exception("already installed")
-        self.api.snaps.install_snap()
-        pass
+    @on(Button.Pressed, "#install-button")
+    async def action_install_snap(self):
+        try:
+            if self.is_installed:
+                raise Exception(
+                    f"{self.snap_info.name} already installed with version {self.snap_install_data.result.version}"
+                )
+            # get settings
+            settings_state = self.snap_settings.get_selection_state()
+            await self.api.snaps.install_snap(
+                snap=self.snap_info.name,
+                channel=self.selected_channel.name,
+                wait=True,
+                **settings_state,
+            )
+            self.toggle_is_installed(True)
+            # raise NotImplementedError("installing snap not implemented")
+
+        except Exception as e:
+            self.app.push_screen(
+                ErrorModal(
+                    e,
+                    error_title="Error",
+                )
+            )
+
+    @on(Button.Pressed, "#uninstall-button")
+    async def action_uninstall_snap(self):
+        try:
+            if not self.is_installed:
+                raise Exception(f"{self.snap_info.name} is not installed")
+
+            await self.api.snaps.remove_snap(
+                self.snap_info.name, purge=True, terminate=True, wait=True
+            )
+            self.toggle_is_installed(False)
+
+        except Exception as e:
+            self.app.push_screen(
+                ErrorModal(
+                    e,
+                    error_title="Error",
+                )
+            )
 
     @on(ListView.Selected)
     @on(ListView.Highlighted)
     def channel_list_selected(self, selected_item: ListView.Selected):
-        channel_item = selected_item.item
-        self.channel_tree.update_tree(self.current_arch_channels[channel_item.name])
-        self.update_snap_settings_list(self.current_arch_channels[channel_item.name])
+        self.selected_channel = selected_item.item
+        self.channel_tree.update_tree(
+            self.current_arch_channels[self.selected_channel.name]
+        )
+        self.update_snap_settings_list(
+            self.current_arch_channels[self.selected_channel.name]
+        )
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
         """Organize channels by architecture, then track"""
@@ -154,8 +209,10 @@ class InstallModal(ModalScreen):
                     self.channel_tree,
                     Vertical(
                         self.snap_settings_element,
-                        Placeholder(
-                            "snap-install-buttons", classes="snap-install-buttons"
+                        Horizontal(
+                            self.install_button,
+                            self.uninstall_button,
+                            classes="install-buttons-box",
                         ),
                         classes="snap-settings",
                     ),
