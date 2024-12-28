@@ -25,6 +25,7 @@ snaps_api = SnapClient(
     store_base_url="https://api.snapcraft.io",
     version="v2",
     store_headers={"Snap-Device-Series": "16", "X-Ubuntu-Series": "16"},
+    prompt_for_authentication=True,
 )
 ConnectionError
 TABLE_COLUMNS = ("Name", "Description")

@@ -3,11 +3,19 @@ from pathlib import Path
 from snap_python.client import SnapClient
 from snap_python.schemas.snaps import InstalledSnap, SingleInstalledSnapResponse
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
-from textual import on
+from textual import on, work
 from textual.containers import Container, Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Label, ListItem, ListView, Placeholder
+from textual.widgets import (
+    Button,
+    Footer,
+    Label,
+    ListItem,
+    ListView,
+    ProgressBar,
+)
 from textual.widgets.selection_list import Selection
+from textual.worker import Worker, WorkerState
 
 from store_tui.elements.error_modal import ErrorModal
 from store_tui.elements.settings_list import SettingsList
@@ -90,11 +98,16 @@ class InstallModal(ModalScreen):
             disabled=not self.is_installed,
             variant="error",
         )
+        self.install_progress_bar = ProgressBar(classes="progress-bar")
 
-    def toggle_is_installed(self, installed: bool):
-        self.is_installed = installed
-        self.install_button.disabled = installed
-        self.uninstall_button.disabled = not installed
+    def toggle_is_installed(self, installed: bool = False, disable_all: bool = False):
+        if disable_all:
+            self.install_button.disabled = True
+            self.uninstall_button.disabled = True
+        else:
+            self.is_installed = installed
+            self.install_button.disabled = installed
+            self.uninstall_button.disabled = not installed
 
     def update_snap_settings_list(self, channel: ChannelMapItem):
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
@@ -125,21 +138,18 @@ class InstallModal(ModalScreen):
     async def action_install_snap(self):
         try:
             if self.is_installed:
-                raise Exception(
+                raise ValueError(
                     f"{self.snap_info.name} already installed with version {self.snap_install_data.result.version}"
                 )
             # get settings
             settings_state = self.snap_settings.get_selection_state()
-            await self.api.snaps.install_snap(
+            self.do_install_snap(
                 snap=self.snap_info.name,
                 channel=self.selected_channel.name,
-                wait=True,
                 **settings_state,
             )
-            self.toggle_is_installed(True)
-            # raise NotImplementedError("installing snap not implemented")
 
-        except Exception as e:
+        except ValueError as e:
             self.app.push_screen(
                 ErrorModal(
                     e,
@@ -149,22 +159,65 @@ class InstallModal(ModalScreen):
 
     @on(Button.Pressed, "#uninstall-button")
     async def action_uninstall_snap(self):
-        try:
-            if not self.is_installed:
-                raise Exception(f"{self.snap_info.name} is not installed")
+        self.do_install_snap(install=False)
 
-            await self.api.snaps.remove_snap(
-                self.snap_info.name, purge=True, terminate=True, wait=True
+    @work
+    async def do_install_snap(self, install: bool = True, **kwargs):
+        if install:
+            self.toggle_is_installed(disable_all=True)
+            install_response = await self.api.snaps.install_snap(
+                wait=False,
+                **kwargs,
             )
-            self.toggle_is_installed(False)
+            async for change in self.api.get_changes_by_id_generator(
+                install_response.change
+            ):
+                if change.ready:
+                    # set progress bar to 100% and exit loop
+                    self.install_progress_bar.total = self.install_progress_bar.progress
+                    break
 
-        except Exception as e:
+                self.install_progress_bar.total = change.result.overall_progress.total
+                self.install_progress_bar.progress = change.result.overall_progress.done
+            self.toggle_is_installed(installed=True)
+
+        else:
+            self.toggle_is_installed(disable_all=True)
+            uninstall_response = await self.api.snaps.remove_snap(
+                self.snap_info.name, purge=True, terminate=True, wait=False
+            )
+            async for change in self.api.get_changes_by_id_generator(
+                uninstall_response.change
+            ):
+                if change.ready:
+                    # set progress bar to 100% and exit loop
+                    self.install_progress_bar.total = self.install_progress_bar.progress
+                    break
+
+                self.install_progress_bar.total = change.result.overall_progress.total
+                self.install_progress_bar.progress = change.result.overall_progress.done
+            self.toggle_is_installed(installed=False)
+
+    @on(Worker.StateChanged)
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Called when the worker state changes."""
+        if event.state == WorkerState.ERROR:
+            self.toggle_is_installed(installed=self.is_installed)
             self.app.push_screen(
                 ErrorModal(
-                    e,
-                    error_title="Error",
+                    event.worker.error,
+                    error_title="Error in install worker",
                 )
             )
+        elif event.state == WorkerState.SUCCESS:
+            self.app.push_screen(
+                ErrorModal(
+                    Exception("Install Worker Finished"), "Successfully installed snap"
+                )
+            )
+
+        else:
+            pass
 
     @on(ListView.Selected)
     @on(ListView.Highlighted)
@@ -218,7 +271,7 @@ class InstallModal(ModalScreen):
                     ),
                     classes="all-snap-details",
                 ),
-                Placeholder("progress-bar", classes="progress-bar"),
+                Horizontal(self.install_progress_bar, classes="all-snap-details"),
                 classes="main-content",
             ),
         )
