@@ -25,7 +25,7 @@ from store_tui.elements.utils import get_platform_architecture
 MODAL_CSS_PATH = Path(__file__).parent.parent / "styles" / "install_modal.tcss"
 
 
-class InstallModal(ModalScreen):
+class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
     """Installaation Page Modal
 
     This Modal will be used to show the available channels for the charm,
@@ -37,7 +37,7 @@ class InstallModal(ModalScreen):
     """
 
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close")}
+    BINDINGS = {("q", "dismiss_with_install_info", "Close")}
 
     def __init__(
         self,
@@ -99,6 +99,9 @@ class InstallModal(ModalScreen):
             variant="error",
         )
         self.install_progress_bar = ProgressBarWithMessage(classes="progress-bar")
+
+    async def action_dismiss_with_install_info(self):
+        return self.dismiss(self.snap_install_data)
 
     def toggle_is_installed(self, installed: bool = False, disable_all: bool = False):
         if disable_all:
@@ -197,7 +200,7 @@ class InstallModal(ModalScreen):
         self.toggle_is_installed(installed=install)
 
     @on(Worker.StateChanged)
-    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+    async def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Called when the worker state changes."""
         if event.state == WorkerState.ERROR:
             self.toggle_is_installed(installed=self.is_installed)
@@ -206,6 +209,10 @@ class InstallModal(ModalScreen):
                     event.worker.error,
                     error_title="Error in install worker",
                 )
+            )
+        elif event.state == WorkerState.SUCCESS:
+            self.snap_install_data = await self.api.snaps.get_snap_info(
+                self.snap_info.name
             )
 
     @on(ListView.Selected)
