@@ -1,5 +1,7 @@
+import argparse
 import asyncio
 import logging
+import re
 from pathlib import Path
 
 from snap_python.client import SnapClient
@@ -29,6 +31,9 @@ snaps_api = SnapClient(
 )
 TABLE_COLUMNS = ("Name", "Description")
 
+parser = argparse.ArgumentParser(description="Snap Store TUI")
+parser.add_argument("snap", help="Snap name to open on start", nargs="?")
+
 
 class SnapStoreTUI(App):
     BINDINGS = [
@@ -39,11 +44,12 @@ class SnapStoreTUI(App):
     ]
     CSS_PATH = Path(__file__).parent / "styles" / "main.tcss"
 
-    def __init__(self, api: SnapClient) -> None:
+    def __init__(self, api: SnapClient, preload_snap: str | None = None) -> None:
         super().__init__()
         self.current_category = "featured"
         self.all_categories = []
         self.api = api
+        self.preload_snap = preload_snap
 
         self.update_title()
         self.table_position_count = PositionCount(id="table-position-count")
@@ -125,6 +131,8 @@ class SnapStoreTUI(App):
     async def on_mount(self):
         self.data_table.loading = True
         self.call_after_refresh(self.init_main_screen)
+        if self.preload_snap:
+            self.call_after_refresh(self.load_snap_screen, snap_name=self.preload_snap)
 
     async def init_main_screen(self):
         try:
@@ -156,18 +164,16 @@ class SnapStoreTUI(App):
         except Exception:
             self.snapd_api_available = False
 
-    @on(DataTable.RowSelected)
-    async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
-        snap_row_key = row_selected.row_key.value
+    async def load_snap_screen(self, snap_name: str):
         try:
             self.data_table.loading = True
             if self.snapd_api_available:
-                snap_install_data = self.api.snaps.get_snap_info(snap_row_key)
+                snap_install_data = self.api.snaps.get_snap_info(snap_name)
             else:
                 # empty await
                 snap_install_data = asyncio.sleep(0)
             snap_info = self.api.store.retry_get_snap_info(
-                snap_name=snap_row_key, fields=VALID_SNAP_INFO_FIELDS
+                snap_name=snap_name, fields=VALID_SNAP_INFO_FIELDS
             )
             snap_install_data, snap_info = await asyncio.gather(
                 snap_install_data, snap_info
@@ -182,13 +188,26 @@ class SnapStoreTUI(App):
         if snap_info is None:
             return
         snap_modal = SnapModal(
-            snap_name=snap_row_key,
+            snap_name=snap_name,
             api=self.api,
             snap_info=snap_info,
             snap_install_data=snap_install_data,
         )
         self.push_screen(snap_modal)
 
+    @on(DataTable.RowSelected)
+    async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
+        snap_row_key = row_selected.row_key.value
+        await self.load_snap_screen(snap_name=snap_row_key)
+
 
 if __name__ == "__main__":
-    SnapStoreTUI(api=snaps_api).run()
+    args = parser.parse_args()
+
+    if args.snap:
+        # check if it starts with snap://
+        # if it does, remove it using a regex
+
+        args.snap = re.sub(r"^snap://", "", args.snap)
+
+    SnapStoreTUI(api=snaps_api, preload_snap=args.snap).run()
