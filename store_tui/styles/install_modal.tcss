@@ -46,10 +46,13 @@
     border: solid white;
     layout: grid;
     grid-size: 2;
+    min-height: 5;
+    max-height: 8;
     # grid-rows: 2fr;
 }
 
 .snap-install-buttons {
     height: 100%;
     width: 100%;
+    min-height: 3;
 }

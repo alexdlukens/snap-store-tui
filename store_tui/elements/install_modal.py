@@ -73,10 +73,6 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
             self.current_arch_channels[self.selected_channel.name],
             classes="snap-channel-info",
         )
-        self.is_installed = False
-
-        if self.snap_info and isinstance(snap_install_data.result, InstalledSnap):
-            self.is_installed = True
 
         self.snap_settings = SettingsList(id="settings-list")
         self.snap_settings_element = Vertical(
@@ -88,31 +84,76 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
             "Install",
             classes="snap-install-buttons",
             id="install-button",
-            disabled=self.is_installed,
             variant="primary",
         )
         self.uninstall_button = Button(
             "Uninstall",
             id="uninstall-button",
             classes="snap-install-buttons",
-            disabled=not self.is_installed,
             variant="error",
         )
         self.install_progress_bar = ProgressBarWithMessage(classes="progress-bar")
+        self.is_installed = False
+        self.same_channel_installed = False
 
     async def action_dismiss_with_install_info(self):
         return self.dismiss(self.snap_install_data)
 
-    def toggle_is_installed(self, installed: bool = False, disable_all: bool = False):
+    async def on_mount(self):
+        await self.toggle_is_installed()
+
+    async def check_is_installed(self):
+        """
+        Asynchronously checks if the snap is installed and updates the installation status.
+        This method retrieves the installation information of the snap using the API and
+        updates the `is_installed` and `same_channel_installed` attributes based on the
+        retrieved data.
+        Attributes:
+            snap_install_data (SnapInfo): The installation data of the snap.
+            is_installed (bool): True if the snap is installed, False otherwise.
+            same_channel_installed (bool): True if the installed snap is on the same channel
+                                           as the selected channel, False otherwise.
+        """
+
+        # get installed snap info
+        self.snap_install_data = await self.api.snaps.get_snap_info(self.snap_info.name)
+        if self.snap_install_data and isinstance(
+            self.snap_install_data.result, InstalledSnap
+        ):
+            self.is_installed = True
+            self.same_channel_installed = (
+                self.snap_install_data.result.channel == self.selected_channel.name
+            )
+        else:
+            self.is_installed = False
+            self.same_channel_installed = False
+
+    async def toggle_is_installed(self, disable_all: bool = False):
+        """
+        Asynchronously toggles the installation status of the application.
+        This method enables or disables the install and uninstall buttons based on
+        the installation status of the application. If `disable_all` is set to True,
+        both buttons will be disabled regardless of the installation status.
+        Args:
+            disable_all (bool): If True, disables both install and uninstall buttons.
+                                Defaults to False.
+        """
+
         if disable_all:
             self.install_button.disabled = True
             self.uninstall_button.disabled = True
         else:
-            self.is_installed = installed
-            self.install_button.disabled = installed
-            self.uninstall_button.disabled = not installed
+            await self.check_is_installed()
+            # TODO: this needs to be implemented in snap-python: "and self.same_channel_installed"
+            self.install_button.disabled = self.is_installed
+            self.uninstall_button.disabled = not self.is_installed
 
     def update_snap_settings_list(self, channel: ChannelMapItem):
+        """Update channel details, available snap settings when switching branches
+
+        Args:
+            channel (ChannelMapItem): the new channel
+        """
         channel_name = f"{channel.channel.track}/{channel.channel.name}"
 
         classic_initial_state = False
@@ -139,11 +180,16 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
 
     @on(Button.Pressed, "#install-button")
     async def action_install_snap(self):
+        """
+        Asynchronously installs a snap package using the selected settings and channel.
+        This method retrieves the current selection state from snap settings and attempts to install
+        the snap package specified by `self.snap_info.name` on the selected channel. If an error occurs
+        during the installation process, an error modal is displayed with the error message.
+        Raises:
+            ValueError: If there is an issue with the installation process.
+        """
+
         try:
-            if self.is_installed:
-                raise ValueError(
-                    f"{self.snap_info.name} already installed with version {self.snap_install_data.result.version}"
-                )
             # get settings
             settings_state = self.snap_settings.get_selection_state()
             self.do_install_snap(
@@ -166,14 +212,27 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
 
     @work(exit_on_error=False)
     async def do_install_snap(self, install: bool = True, **kwargs):
+        """
+        Perform the installation or removal of a snap package asynchronously.
+        This method handles the installation or removal of a snap package based on the
+        `install` parameter. It updates the installation progress bar and status messages
+        accordingly.
+        Args:
+            install (bool): If True, install the snap package. If False, remove the snap package.
+            **kwargs: Additional keyword arguments to pass to the snap installation or removal API.
+        Returns:
+            None
+        Raises:
+            Exception: If there is an error during the snap installation or removal process.
+        """
+
+        await self.toggle_is_installed(disable_all=True)
         if install:
-            self.toggle_is_installed(disable_all=True)
             response = await self.api.snaps.install_snap(
                 wait=False,
                 **kwargs,
             )
         else:
-            self.toggle_is_installed(disable_all=True)
             response = await self.api.snaps.remove_snap(
                 self.snap_info.name, purge=True, terminate=True, wait=False
             )
@@ -197,13 +256,23 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
             if active_tasks:
                 self.install_progress_bar.message.update(active_tasks[0].summary)
 
-        self.toggle_is_installed(installed=install)
-
     @on(Worker.StateChanged)
     async def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
-        """Called when the worker state changes."""
+        """
+        Called when the installation worker's state changes.
+
+        This method handles the state changes of a worker. If the worker state is
+        `ERROR`, it toggles the installation status and displays an error modal
+        with the error message. If the worker state is `SUCCESS`, it fetches and
+        updates the snap installation data.
+
+        Args:
+            event (Worker.StateChanged): The event object containing the new state
+            of the worker.
+        """
+
         if event.state == WorkerState.ERROR:
-            self.toggle_is_installed(installed=self.is_installed)
+            await self.toggle_is_installed()
             self.app.push_screen(
                 ErrorModal(
                     event.worker.error,
@@ -211,13 +280,22 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
                 )
             )
         elif event.state == WorkerState.SUCCESS:
-            self.snap_install_data = await self.api.snaps.get_snap_info(
-                self.snap_info.name
-            )
+            await self.toggle_is_installed()
 
     @on(ListView.Selected)
     @on(ListView.Highlighted)
-    def channel_list_selected(self, selected_item: ListView.Selected):
+    async def channel_list_selected(self, selected_item: ListView.Selected):
+        """
+        Handles the event when a channel is selected from the list.
+
+        Args:
+            selected_item (ListView.Selected): The selected item from the list view.
+
+        Updates:
+            self.selected_channel: Sets the selected channel to the item from the selected list view.
+            self.channel_tree: Updates the channel tree with the channels of the current architecture.
+            self.update_snap_settings_list: Updates the snap settings list with the channels of the current architecture.
+        """
         self.selected_channel = selected_item.item
         self.channel_tree.update_tree(
             self.current_arch_channels[self.selected_channel.name]
@@ -225,9 +303,21 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
         self.update_snap_settings_list(
             self.current_arch_channels[self.selected_channel.name]
         )
+        await self.toggle_is_installed()
 
     def organize_channel_tree(self) -> dict[str, list[ChannelMapItem]]:
-        """Organize channels by architecture, then track"""
+        """
+        Organize channels by architecture and sort them by release date.
+
+        This method processes the `channel_map` attribute of `snap_info` to group
+        channels by their architecture. Each group of channels is then sorted in
+        descending order based on their release date.
+
+        Returns:
+            dict[str, list[ChannelMapItem]]: A dictionary where the keys are
+            architecture strings and the values are lists of `ChannelMapItem`
+            objects sorted by their release date in descending order.
+        """
 
         architectures = set()
         for channel_item in self.snap_info.channel_map:
