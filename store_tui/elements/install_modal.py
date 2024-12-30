@@ -165,58 +165,36 @@ class InstallModal(ModalScreen):
     async def do_install_snap(self, install: bool = True, **kwargs):
         if install:
             self.toggle_is_installed(disable_all=True)
-            install_response = await self.api.snaps.install_snap(
+            response = await self.api.snaps.install_snap(
                 wait=False,
                 **kwargs,
             )
-            async for change in self.api.get_changes_by_id_generator(
-                install_response.change
-            ):
-                if change.ready:
-                    # set progress bar to 100% and exit loop
-                    self.install_progress_bar.progress_bar.total = (
-                        self.install_progress_bar.progress_bar.progress
-                    )
-                    self.install_progress_bar.message.update("Install Complete")
-                    break
-                active_tasks = [t for t in change.result.tasks if t.status == "Doing"]
-
-                self.install_progress_bar.progress_bar.total = (
-                    change.result.overall_progress.total
-                )
-                self.install_progress_bar.progress_bar.progress = (
-                    change.result.overall_progress.done
-                )
-                if active_tasks:
-                    self.install_progress_bar.message.update(active_tasks[0].summary)
-            self.toggle_is_installed(installed=True)
-
         else:
             self.toggle_is_installed(disable_all=True)
-            uninstall_response = await self.api.snaps.remove_snap(
+            response = await self.api.snaps.remove_snap(
                 self.snap_info.name, purge=True, terminate=True, wait=False
             )
-            async for change in self.api.get_changes_by_id_generator(
-                uninstall_response.change
-            ):
-                if change.ready:
-                    # set progress bar to 100% and exit loop
-                    self.install_progress_bar.progress_bar.total = (
-                        self.install_progress_bar.progress_bar.progress
-                    )
-                    self.install_progress_bar.message.update("Uninstall Complete")
-                    break
 
-                active_tasks = [t for t in change.result.tasks if t.status == "Doing"]
+        async for change in self.api.get_changes_by_id_generator(response.change):
+            if change.ready:
+                # set progress bar to 100% and exit loop
                 self.install_progress_bar.progress_bar.total = (
-                    change.result.overall_progress.total
+                    self.install_progress_bar.progress_bar.progress
                 )
-                self.install_progress_bar.progress_bar.progress = (
-                    change.result.overall_progress.done
-                )
-                if active_tasks:
-                    self.install_progress_bar.message.update(active_tasks[0].summary)
-            self.toggle_is_installed(installed=False)
+                self.install_progress_bar.message.update("Operation Complete")
+                break
+            active_tasks = [t for t in change.result.tasks if t.status == "Doing"]
+
+            self.install_progress_bar.progress_bar.total = (
+                change.result.overall_progress.total
+            )
+            self.install_progress_bar.progress_bar.progress = (
+                change.result.overall_progress.done
+            )
+            if active_tasks:
+                self.install_progress_bar.message.update(active_tasks[0].summary)
+
+        self.toggle_is_installed(installed=install)
 
     @on(Worker.StateChanged)
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
