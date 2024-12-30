@@ -207,10 +207,6 @@ class InstallModal(ModalScreen):
                     error_title="Error in install worker",
                 )
             )
-        elif event.state == WorkerState.SUCCESS:
-            pass
-        else:
-            pass
 
     @on(ListView.Selected)
     @on(ListView.Highlighted)
