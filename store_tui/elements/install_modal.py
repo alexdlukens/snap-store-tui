@@ -12,12 +12,12 @@ from textual.widgets import (
     Label,
     ListItem,
     ListView,
-    ProgressBar,
 )
 from textual.widgets.selection_list import Selection
 from textual.worker import Worker, WorkerState
 
 from store_tui.elements.error_modal import ErrorModal
+from store_tui.elements.progress_bar_with_message import ProgressBarWithMessage
 from store_tui.elements.settings_list import SettingsList
 from store_tui.elements.snap_channel_tree import SnapChannelTree
 from store_tui.elements.utils import get_platform_architecture
@@ -98,7 +98,7 @@ class InstallModal(ModalScreen):
             disabled=not self.is_installed,
             variant="error",
         )
-        self.install_progress_bar = ProgressBar(classes="progress-bar")
+        self.install_progress_bar = ProgressBarWithMessage(classes="progress-bar")
 
     def toggle_is_installed(self, installed: bool = False, disable_all: bool = False):
         if disable_all:
@@ -161,7 +161,7 @@ class InstallModal(ModalScreen):
     async def action_uninstall_snap(self):
         self.do_install_snap(install=False)
 
-    @work
+    @work(exit_on_error=False)
     async def do_install_snap(self, install: bool = True, **kwargs):
         if install:
             self.toggle_is_installed(disable_all=True)
@@ -174,11 +174,21 @@ class InstallModal(ModalScreen):
             ):
                 if change.ready:
                     # set progress bar to 100% and exit loop
-                    self.install_progress_bar.total = self.install_progress_bar.progress
+                    self.install_progress_bar.progress_bar.total = (
+                        self.install_progress_bar.progress_bar.progress
+                    )
+                    self.install_progress_bar.message.update("Install Complete")
                     break
+                active_tasks = [t for t in change.result.tasks if t.status == "Doing"]
 
-                self.install_progress_bar.total = change.result.overall_progress.total
-                self.install_progress_bar.progress = change.result.overall_progress.done
+                self.install_progress_bar.progress_bar.total = (
+                    change.result.overall_progress.total
+                )
+                self.install_progress_bar.progress_bar.progress = (
+                    change.result.overall_progress.done
+                )
+                if active_tasks:
+                    self.install_progress_bar.message.update(active_tasks[0].summary)
             self.toggle_is_installed(installed=True)
 
         else:
@@ -191,11 +201,21 @@ class InstallModal(ModalScreen):
             ):
                 if change.ready:
                     # set progress bar to 100% and exit loop
-                    self.install_progress_bar.total = self.install_progress_bar.progress
+                    self.install_progress_bar.progress_bar.total = (
+                        self.install_progress_bar.progress_bar.progress
+                    )
+                    self.install_progress_bar.message.update("Uninstall Complete")
                     break
 
-                self.install_progress_bar.total = change.result.overall_progress.total
-                self.install_progress_bar.progress = change.result.overall_progress.done
+                active_tasks = [t for t in change.result.tasks if t.status == "Doing"]
+                self.install_progress_bar.progress_bar.total = (
+                    change.result.overall_progress.total
+                )
+                self.install_progress_bar.progress_bar.progress = (
+                    change.result.overall_progress.done
+                )
+                if active_tasks:
+                    self.install_progress_bar.message.update(active_tasks[0].summary)
             self.toggle_is_installed(installed=False)
 
     @on(Worker.StateChanged)
@@ -210,12 +230,7 @@ class InstallModal(ModalScreen):
                 )
             )
         elif event.state == WorkerState.SUCCESS:
-            self.app.push_screen(
-                ErrorModal(
-                    Exception("Install Worker Finished"), "Successfully installed snap"
-                )
-            )
-
+            pass
         else:
             pass
 
@@ -271,7 +286,7 @@ class InstallModal(ModalScreen):
                     ),
                     classes="all-snap-details",
                 ),
-                Horizontal(self.install_progress_bar, classes="all-snap-details"),
+                self.install_progress_bar,
                 classes="main-content",
             ),
         )
