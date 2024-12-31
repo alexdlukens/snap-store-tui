@@ -115,6 +115,12 @@ class InstallModal(ModalScreen[SingleInstalledSnapResponse]):
                                            as the selected channel, False otherwise.
         """
 
+        # no api access
+        if not self.snap_install_data:
+            self.is_installed = False
+            self.same_channel_installed = False
+            return
+
         # get installed snap info
         self.snap_install_data = await self.api.snaps.get_snap_info(self.snap_info.name)
         if self.snap_install_data and isinstance(
