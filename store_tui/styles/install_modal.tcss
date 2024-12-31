@@ -1,0 +1,58 @@
+.channel-list {
+    height: 100%;
+    width: 20%
+}
+
+.main-content {
+    height: 100%;
+    width: 80%
+}
+
+.snap-settings {
+    height:100%;
+    width: 60%;
+}
+
+.snap-settings-box {
+    height:70%;
+    width: 100%;
+    border: solid white;
+}
+
+.snap-install-buttons {
+    height:30%;
+    width: 100%;
+}
+
+.all-snap-details {
+    height:85%;
+    width: 100%;
+}
+
+.snap-channel-info {
+    height:100%;
+    width: 40%;
+}
+
+.progress-bar {
+    width: 100%;
+    padding-top: 0;
+    height: 3;
+}
+
+.install-buttons-box {
+    height: 30%;
+    width: 100%;
+    border: solid white;
+    layout: grid;
+    grid-size: 2;
+    min-height: 5;
+    max-height: 8;
+    # grid-rows: 2fr;
+}
+
+.snap-install-buttons {
+    height: 100%;
+    width: 100%;
+    min-height: 3;
+}

@@ -10,10 +10,12 @@ Designed using the "Textual" Python Library - https://github.com/textualize/text
 - [✅] Search for Snaps
 - [✅] View Snap Details
 - [✅] Open Store URL in Browser
-- [❌] Install/Modify Snaps directly from the TUI
-- [❌] View Installed Snaps
-- [❌] View Snap Channels and Revisions
+- [✅] View Installed Snaps
+- [✅] Install/Uninstall Snaps directly from the TUI
+- [✅] Browse Snap Channels
+- [❌] View Snap Revisions
 - [❌] Sort and Filter Snaps
+- [❌] Install from alternate stores
 
 ## Install
 ```bash

@@ -34,7 +34,7 @@ class SnapResultTable(DataTable):
         self.table_position_count.current_number = 0
         for snap_result in response.results:
             self.add_row(
-                snap_result.snap.title,
+                snap_result.name,
                 snap_result.snap.summary,
                 key=snap_result.name,
             )

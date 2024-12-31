@@ -5,10 +5,9 @@ import httpx
 import humanize
 from rich_pixels import Pixels
 from snap_python.client import SnapClient
-from snap_python.schemas.common import BaseErrorResult
-from snap_python.schemas.snaps import SingleSnapResponse
+from snap_python.schemas.common import BaseErrorResult, Media
+from snap_python.schemas.snaps import SingleInstalledSnapResponse
 from snap_python.schemas.store.info import InfoResponse
-from snap_python.schemas.store.search import Media
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -27,14 +26,14 @@ PLACEHOLDER_ICON_FILEPATH = SCHEMAS_DIR / "images" / "placeholder.png"
 
 class SnapModal(ModalScreen):
     CSS_PATH = MODAL_CSS_PATH
-    BINDINGS = {("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")}
+    BINDINGS = [("q", "dismiss", "Close"), ("i", "modify", "Install/Modify")]
 
     def __init__(
         self,
         snap_name: str,
         api: SnapClient,
         snap_info: InfoResponse,
-        snap_install_data: SingleSnapResponse | None,
+        snap_install_data: SingleInstalledSnapResponse | None,
     ) -> None:
         super().__init__()
         self.snap_name = snap_name
@@ -43,12 +42,6 @@ class SnapModal(ModalScreen):
         self.snap = self.snap_info.snap
         self.snap_install_data = snap_install_data
 
-        if self.snap_install_data is None:
-            self.snap_install_message = "Installed: 🚫 (snapd unaccessible)"
-        elif isinstance(self.snap_install_data.result, BaseErrorResult):
-            self.snap_install_message = "Installed: ❌"
-        else:
-            self.snap_install_message = f"Installed: ✅"
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
@@ -65,14 +58,40 @@ class SnapModal(ModalScreen):
         self.install_button = Button(
             "Install/Modify", classes="install-button", id="install-button"
         )
+        self.installed_label = Label(
+            "", classes="details-item", id="is-installed-label", shrink=True
+        )
+
+    def set_installed_message(self):
+        if self.snap_install_data is None:
+            snap_install_message = "Installed: 🚫 (snapd unaccessible)"
+        elif isinstance(self.snap_install_data.result, BaseErrorResult):
+            snap_install_message = "Installed: ❌"
+        else:
+            installed_version = (
+                f"v{self.snap_install_data.result.version}"
+                if self.snap_install_data.result.version
+                else f"rev. {self.snap_install_data.result.revision}"
+            )
+            snap_install_message = f"Installed: ✅ ({installed_version})"
+
+        self.installed_label: Label = self.query_one("#is-installed-label")
+        self.installed_label.update(snap_install_message)
 
     @on(Button.Pressed, "#install-button")
-    async def install_button_pressed(self):
-        self.action_modify()
-
     @work
     async def action_modify(self):
-        await self.app.push_screen(InstallModal(self.snap_info), wait_for_dismiss=True)
+        new_install_data = await self.app.push_screen(
+            InstallModal(
+                self.snap_info,
+                snap_install_data=self.snap_install_data,
+                api=self.api,
+            ),
+            wait_for_dismiss=True,
+        )
+        if new_install_data:
+            self.snap_install_data = new_install_data
+            self.set_installed_message()
 
     def get_architectures(self) -> list[str]:
         architectures = set()
@@ -150,7 +169,7 @@ class SnapModal(ModalScreen):
                     classes="details-item",
                     shrink=True,
                 ),
-                Label(self.snap_install_message, classes="details-item", shrink=True),
+                self.installed_label,
                 Label(
                     f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
                     classes="details-item",
@@ -186,3 +205,4 @@ class SnapModal(ModalScreen):
 
     def on_mount(self):
         self.set_focus(self.get_widget_by_id("description-box"))
+        self.set_installed_message()
