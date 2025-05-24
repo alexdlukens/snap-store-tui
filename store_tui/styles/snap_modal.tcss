@@ -2,7 +2,7 @@
     text-style: bold;
     text-align: center;
     align: left middle;
-    padding: 1;
+    padding: 0;
     padding-left: 4;
 }
 
@@ -29,18 +29,19 @@
     border: blank;
     width: 30%;
     min-width: 16;
-    padding: 1;
+    padding: 0;
 }
 .centered {
     content-align: center middle;
 }
 .summary-row {
-    max-height: 1;
+    max-height: 2;
     padding-left: 2;
     text-style: italic;
+    border-bottom: solid white;
 }
 .top-row {
-    height: 3;
+    height: 1;
 }
 .main-row {
     layout: horizontal;

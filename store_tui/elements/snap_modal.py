@@ -9,7 +9,7 @@ from snap_python.schemas.common import BaseErrorResult, Media
 from snap_python.schemas.snaps import SingleInstalledSnapResponse
 from snap_python.schemas.store.info import InfoResponse
 from textual import on, work
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, Markdown, Static
 
@@ -150,52 +150,55 @@ class SnapModal(ModalScreen):
             Label(self.snap.summary, classes="summary"),
             classes="summary-row",
         )
-        yield Horizontal(
-            Vertical(
-                Label("Description"),
-                Markdown(self.snap.description, id="description-text"),
-                classes="description-box",
-            ),  # description
-            Vertical(
-                Static(self.icon_obj, classes="centered snap-icon"),
-                Label(
-                    f"License: {self.snap.license or 'unset'}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                self.installed_label,
-                Label(
-                    f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                ClickableLink(
-                    text="Store Page",
-                    url=self.snap.store_url,
-                    classes="details-item link",
-                    shrink=True,
-                ),
-                ClickableLink(
-                    text="App Center Page",
-                    url=f"snap://{self.snap_name}",
-                    classes="details-item link",
-                    shrink=True,
-                ),
-                Label(
-                    f"Last Updated: {self.get_last_modified_date()}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                Label(
-                    f"Architectures: {", ".join(self.supported_architectures)}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                classes="details-box",
-            ),  # right side
-            classes="main-row",
-            id="main-row-element",
+        yield VerticalScroll(
+            Horizontal(
+                Vertical(
+                    Label("Description"),
+                    Markdown(self.snap.description, id="description-text"),
+                    classes="description-box",
+                ),  # description
+                Vertical(
+                    Static(self.icon_obj, classes="centered snap-icon"),
+                    Label(
+                        f"License: {self.snap.license or 'unset'}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    self.installed_label,
+                    Label(
+                        f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    ClickableLink(
+                        text="Store Page",
+                        url=self.snap.store_url,
+                        classes="details-item link",
+                        shrink=True,
+                    ),
+                    ClickableLink(
+                        text="App Center Page",
+                        url=f"snap://{self.snap_name}",
+                        classes="details-item link",
+                        shrink=True,
+                    ),
+                    Label(
+                        f"Last Updated: {self.get_last_modified_date()}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    Label(
+                        f"Architectures: {", ".join(self.supported_architectures)}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    classes="details-box",
+                ),  # right side
+                classes="main-row",
+                id="main-row-element",
+            )
         )
+        yield Footer(show_command_palette=False)
         yield Footer(show_command_palette=False)
 
     def on_mount(self):
