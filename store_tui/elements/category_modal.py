@@ -10,9 +10,7 @@ CATEGORY_CSS_PATH = Path(__file__).parent.parent / "styles" / "category_modal.tc
 class CategoryModal(ModalScreen):
     CSS_PATH = CATEGORY_CSS_PATH
 
-    def __init__(
-        self, categories: list[tuple[str, str]], current_category: str
-    ) -> None:
+    def __init__(self, categories: list[str], current_category: str) -> None:
         super().__init__()
         self.categories = categories
         self.current_category = current_category
