@@ -148,13 +148,12 @@ class SnapStoreTUI(App):
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
             self.all_categories = ["featured"]
-            top_snaps = SearchResponse(results=[])  # type: ignore
+            top_snaps = None  # type: ignore
             self.push_screen(
                 ErrorModal(e, error_title="Error - getting categories or top snaps")
             )
-        finally:
-            self.data_table.loading = False
         await self.data_table.update_table(top_snaps=top_snaps)
+        self.data_table.loading = False
         if self.data_table.row_count > 0:
             self.data_table.focus()
 
