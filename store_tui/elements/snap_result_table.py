@@ -20,7 +20,8 @@ class SnapResultTable(DataTable):
         self.call_after_refresh(self.after_init)
 
     async def update_table(
-        self, top_snaps: Optional[Coroutine[None, None, SearchResponse]]
+        self,
+        top_snaps: Optional[Coroutine[None, None, SearchResponse] | SearchResponse],
     ):
         self.clear()
         self.table_position_count.total = 0
@@ -30,6 +31,8 @@ class SnapResultTable(DataTable):
         # check if top_snaps is a coroutine, if so, await it
         if not top_snaps:
             response = SearchResponse(results=[])
+        elif isinstance(top_snaps, SearchResponse):
+            response = top_snaps
         else:
             response = await top_snaps
 
