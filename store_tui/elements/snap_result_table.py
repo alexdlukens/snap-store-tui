@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Coroutine
+from typing import Coroutine, Optional
 
 from snap_python.schemas.store.search import SearchResponse
 from textual import on
@@ -19,15 +19,21 @@ class SnapResultTable(DataTable):
 
         self.call_after_refresh(self.after_init)
 
-    async def update_table(self, top_snaps: Coroutine[None, None, SearchResponse]):
+    async def update_table(
+        self,
+        top_snaps: Optional[Coroutine[None, None, SearchResponse] | SearchResponse],
+    ):
         self.clear()
         self.table_position_count.total = 0
         self.table_position_count.current_number = 0
         self.set_loading(True)
 
         # check if top_snaps is a coroutine, if so, await it
-        response: SearchResponse = top_snaps
-        if isinstance(top_snaps, Coroutine):
+        if not top_snaps:
+            response = SearchResponse(results=[])
+        elif isinstance(top_snaps, SearchResponse):
+            response = top_snaps
+        else:
             response = await top_snaps
 
         self.table_position_count.total = len(response.results)

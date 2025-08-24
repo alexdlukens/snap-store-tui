@@ -11,7 +11,7 @@ from snap_python.schemas.store.info import InfoResponse
 from textual import on, work
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Label, Static, TextArea
+from textual.widgets import Button, Footer, Label, Markdown, Static
 
 from store_tui.elements.clickable_link import ClickableLink
 from store_tui.elements.install_modal import InstallModal
@@ -41,7 +41,6 @@ class SnapModal(ModalScreen):
         self.snap_info = snap_info
         self.snap = self.snap_info.snap
         self.snap_install_data = snap_install_data
-
         if not self.snap:
             raise ValueError(f"Snap with name {self.snap_name} not found")
         self.title = self.snap.title
@@ -55,9 +54,6 @@ class SnapModal(ModalScreen):
             )
 
         self.supported_architectures = self.get_architectures()
-        self.install_button = Button(
-            "Install/Modify", classes="install-button", id="install-button"
-        )
         self.installed_label = Label(
             "", classes="details-item", id="is-installed-label", shrink=True
         )
@@ -128,8 +124,10 @@ class SnapModal(ModalScreen):
             icon_path.write_bytes(httpx.get(icon_url, timeout=5).content)
             self.icon_obj = Pixels.from_image_path(icon_path, resize=(16, 16))
 
-    def get_icon_url(self, media: list[Media]) -> str:
+    def get_icon_url(self, media: list[Media] | None) -> str | None:
         """Get the icon_url from the media list"""
+        if media is None:
+            return None
         for media_obj in media:
             if media_obj.type == "icon":
                 return media_obj.url
@@ -146,63 +144,62 @@ class SnapModal(ModalScreen):
                 ),
                 classes="title-container",
             ),
-            Vertical(
-                self.install_button,
-                classes="button-container",
-            ),
             classes="top-row",
         )
         yield Horizontal(
             Label(self.snap.summary, classes="summary"),
             classes="summary-row",
         )
-        yield Horizontal(
-            Vertical(
-                Label("Description"),
-                TextArea(self.snap.description, read_only=True, id="description-box"),
-                classes="description-box",
-            ),  # description
-            VerticalScroll(
-                Static(self.icon_obj, classes="centered snap-icon"),
-                Label(
-                    f"License: {self.snap.license or 'unset'}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                self.installed_label,
-                Label(
-                    f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                ClickableLink(
-                    text="Store Page",
-                    url=self.snap.store_url,
-                    classes="details-item link",
-                    shrink=True,
-                ),
-                ClickableLink(
-                    text="App Center Page",
-                    url=f"snap://{self.snap_name}",
-                    classes="details-item link",
-                    shrink=True,
-                ),
-                Label(
-                    f"Last Updated: {self.get_last_modified_date()}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                Label(
-                    f"Architectures: {", ".join(self.supported_architectures)}",
-                    classes="details-item",
-                    shrink=True,
-                ),
-                classes="details-box",
-            ),  # right side
-            classes="main-row",
+        yield VerticalScroll(
+            Horizontal(
+                Vertical(
+                    Label("Description"),
+                    Markdown(self.snap.description, id="description-text"),
+                    classes="description-box",
+                ),  # description
+                Vertical(
+                    Static(self.icon_obj, classes="centered snap-icon"),
+                    Label(
+                        f"License: {self.snap.license or 'unset'}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    self.installed_label,
+                    Label(
+                        f"Supported: {'✅' if get_platform_architecture() in self.supported_architectures else '❌'} on {get_platform_architecture()}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    ClickableLink(
+                        text="Store Page",
+                        url=self.snap.store_url,
+                        classes="details-item link",
+                        shrink=True,
+                    ),
+                    ClickableLink(
+                        text="App Center Page",
+                        url=f"snap://{self.snap_name}",
+                        classes="details-item link",
+                        shrink=True,
+                    ),
+                    Label(
+                        f"Last Updated: {self.get_last_modified_date()}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    Label(
+                        f"Architectures: {", ".join(self.supported_architectures)}",
+                        classes="details-item",
+                        shrink=True,
+                    ),
+                    classes="details-box",
+                ),  # right side
+                classes="main-row",
+                id="main-row-element",
+            )
         )
+        yield Footer(show_command_palette=False)
         yield Footer(show_command_palette=False)
 
     def on_mount(self):
-        self.set_focus(self.get_widget_by_id("description-box"))
         self.set_installed_message()

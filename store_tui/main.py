@@ -47,7 +47,7 @@ class SnapStoreTUI(App):
     def __init__(self, api: SnapClient, preload_snap: str | None = None) -> None:
         super().__init__()
         self.current_category = "featured"
-        self.all_categories = []
+        self.all_categories: list[str] = []
         self.api = api
         self.preload_snap = preload_snap
 
@@ -119,7 +119,7 @@ class SnapStoreTUI(App):
             self.push_screen(
                 ErrorModal(e, error_title="Error - listing installed snaps")
             )
-            installed_snaps = []
+            installed_snaps = SearchResponse(results=[])  # type: ignore
 
         if installed_snaps:
             await self.data_table.update_table(top_snaps=installed_snaps)
@@ -137,8 +137,9 @@ class SnapStoreTUI(App):
     async def init_main_screen(self):
         try:
             categories_response = await self.api.store.get_categories()
-            self.all_categories: list[str] = [
-                category.name for category in categories_response.categories
+            self.all_categories = [
+                category.name or ""
+                for category in (categories_response.categories or [])
             ]
             top_snaps = self.api.store.get_top_snaps_from_category(
                 self.current_category
@@ -147,13 +148,12 @@ class SnapStoreTUI(App):
             logger.exception("Error getting categories or top snaps")
             categories_response = CategoryResponse(categories=[])
             self.all_categories = ["featured"]
-            top_snaps = SearchResponse(results=[])
+            top_snaps = None  # type: ignore
             self.push_screen(
                 ErrorModal(e, error_title="Error - getting categories or top snaps")
             )
-        finally:
-            self.data_table.loading = False
         await self.data_table.update_table(top_snaps=top_snaps)
+        self.data_table.loading = False
         if self.data_table.row_count > 0:
             self.data_table.focus()
 
@@ -198,6 +198,7 @@ class SnapStoreTUI(App):
     @on(DataTable.RowSelected)
     async def on_data_table_row_selected(self, row_selected: DataTable.RowSelected):
         snap_row_key = row_selected.row_key.value
+        assert snap_row_key is not None
         await self.load_snap_screen(snap_name=snap_row_key)
 
 
