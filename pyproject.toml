@@ -29,3 +29,6 @@ snakeviz = "^2.2.2"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+store-tui = "store_tui.main:main"

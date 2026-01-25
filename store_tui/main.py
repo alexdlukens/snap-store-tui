@@ -202,7 +202,7 @@ class SnapStoreTUI(App):
         await self.load_snap_screen(snap_name=snap_row_key)
 
 
-if __name__ == "__main__":
+def main():
     args = parser.parse_args()
 
     if args.snap:
@@ -212,3 +212,7 @@ if __name__ == "__main__":
         args.snap = re.sub(r"^snap://", "", args.snap)
 
     SnapStoreTUI(api=snaps_api, preload_snap=args.snap).run()
+
+
+if __name__ == "__main__":
+    main()
