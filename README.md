@@ -14,6 +14,7 @@ Snap Store. Built with [Textual](https://github.com/textualize/textual/).
 - Install and uninstall snaps with separate track and risk pickers and a
   strict/classic/devmode/jailmode confinement choice
 - Open a snap's store page in the browser
+- Jump from the details screen to App Center through its `snap://` deep link
 
 Features that talk to snapd (installed snaps, install, uninstall) degrade
 gracefully when snapd is unavailable: the rest of the store view keeps working.
@@ -45,6 +46,22 @@ first, and cancelling or pressing `Escape` in that dialog removes nothing.
 - Python 3.12 (from source)
 - The published snap declares the `network`, `desktop`, `desktop-legacy`, and
   `snapd-control` plugs; `snapd-control` is what grants access to snapd.
+
+The *App Center page* link on the details screen opens `snap://<name>` with
+App Center: the `snap-store` binary (also looked up at `/snap/bin/snap-store`,
+`/usr/bin/snap-store`, and `/usr/bin/app-center`), then `gio open`, then
+`xdg-open`. The native fallbacks are used only when `gio mime
+x-scheme-handler/snap` reports App Center as the registered handler, because
+`gio`/`xdg-open` report success on spawn even when the link lands in another
+app. It never hands the link to a web browser; if no launcher is available the
+app shows a warning instead. Store pages (`https://`) still use the default
+browser.
+
+store-tui does not register the `snap://` scheme — App Center owns it. The CLI
+still accepts a deep link as its argument, so `store-tui snap://vlc` opens the
+details screen for `vlc` without changing any system-wide handler. Installs
+that predate this change registered the scheme themselves; restore App Center
+with `gio mime x-scheme-handler/snap snap-store_snap-store.desktop`.
 
 ## Install
 
@@ -89,6 +106,7 @@ store_tui/
   main.py        command line argument handling
   app.py         Textual application: store screen, bindings, workers
   client.py      snapd and store client setup
+  launcher.py    opens external URLs (App Center deep links) without a browser
   snapd.py       snapd socket-backed installed/install/uninstall operations
   screens/       category, search, snap details, install, error screens
   widgets/       results table, channel tree, links, progress

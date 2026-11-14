@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import subprocess
 from contextlib import suppress
 from urllib.parse import urlparse
 
 from textual import on, work
 from textual.events import Click
 from textual.widgets import Label
+
+from store_tui import launcher
 
 ALLOWED_SCHEMES = {"http", "https", "snap"}
 
@@ -32,13 +33,19 @@ class ClickableLink(Label):
 
     @work(thread=True, group="open-url")
     def _open_in_background(self) -> None:
-        try:
-            self.app.open_url(self.url)
-        except Exception:
-            with suppress(OSError):
-                subprocess.Popen(
-                    ["xdg-open", self.url],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
+        # open_external is synchronous and blocking, hence the thread worker.
+        result = launcher.open_external(self.url, browser_opener=self.app.open_url)
+        if not result.opened:
+            # Never fall back to a browser for snap links: ask App Center to
+            # handle them, or tell the user why that was not possible.
+            with suppress(Exception):
+                self.app.call_from_thread(
+                    self.notify,
+                    self._failure_message(),
+                    severity="warning",
                 )
+
+    def _failure_message(self) -> str:
+        if urlparse(self.url).scheme == launcher.SNAP_SCHEME:
+            return "Could not open App Center — is it installed?"
+        return f"Could not open {self.url}"

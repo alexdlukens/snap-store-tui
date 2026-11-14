@@ -1986,10 +1986,18 @@ async def test_progress_unknown_total_with_progress_stays_empty(
 async def test_clickable_link_allowlist_is_non_blocking(
     client: FakeClient, monkeypatch
 ) -> None:
-    from store_tui.widgets import clickable_link as clickable_link_module
+    from store_tui import launcher
 
-    popen = MagicMock()
-    monkeypatch.setattr(clickable_link_module.subprocess, "Popen", popen)
+    spawned: list[list[str]] = []
+
+    def fake_run(argv, *, tolerate_running):
+        spawned.append(argv)
+        return True, None
+
+    monkeypatch.setattr(launcher, "_run", fake_run)
+    monkeypatch.setattr(
+        launcher, "find_snap_store_binary", lambda: "/usr/bin/snap-store"
+    )
 
     app = make_app(client)
     async with app.run_test(size=TERMINAL_SIZE) as pilot:
@@ -2013,10 +2021,45 @@ async def test_clickable_link_allowlist_is_non_blocking(
         await app.workers.wait_for_complete()
         await pilot.pause()
 
-        assert opened.call_count == 2
-        opened_urls = {call.args[0] for call in opened.call_args_list}
-        assert opened_urls == {"https://snapcraft.io/vlc", "snap://vlc"}
-        popen.assert_not_called()
+        # http(s) still goes through Textual; the snap link goes through the
+        # native launcher; the disallowed file/empty links do nothing.
+        assert opened.call_count == 1
+        assert opened.call_args.args[0] == "https://snapcraft.io/vlc"
+        assert spawned == [["/usr/bin/snap-store", "snap://vlc"]]
+        assert notification_messages(app) == []
+
+
+async def test_failing_snap_launch_notifies_without_browser(
+    client: FakeClient, monkeypatch
+) -> None:
+    from store_tui import launcher
+
+    monkeypatch.setattr(launcher, "find_snap_store_binary", lambda: None)
+    monkeypatch.setattr(launcher, "snap_url_handler", lambda: "store-tui.desktop")
+    monkeypatch.setattr(
+        launcher, "_run", lambda argv, *, tolerate_running: (False, "boom")
+    )
+
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        screen = LinkScreen()
+        app.push_screen(screen)
+        assert await wait_until(pilot, lambda: app.screen is screen)
+        await pilot.pause()
+
+        opened = MagicMock()
+        monkeypatch.setattr(app, "open_url", opened)
+
+        screen.snap_link.on_link_clicked()
+        await app.workers.wait_for_complete()
+        await pilot.pause()
+
+        # No blank browser page: the failure is surfaced as a warning instead.
+        opened.assert_not_called()
+        assert "Could not open App Center — is it installed?" in notification_messages(
+            app
+        )
 
 
 async def test_preload_snap_opens_details(client: FakeClient, monkeypatch) -> None:
@@ -2141,3 +2184,74 @@ async def test_get_installed_state_rejects_bad_envelopes() -> None:
     state = await get_installed_state(bad_status, "x")
     assert state.installed is False
     assert "500" in (state.error or "")
+
+
+async def test_installed_snap_with_ubuntu_26_04_fields_is_accepted(
+    client: FakeClient, monkeypatch
+) -> None:
+    """A modern snapd reports grade/mounted-size and friends; they must be ignored."""
+    monkeypatch.setattr(
+        "store_tui.screens.snap.get_platform_architecture", lambda: "amd64"
+    )
+    monkeypatch.setattr(
+        "store_tui.screens.install.get_platform_architecture", lambda: "amd64"
+    )
+    installed = {
+        "name": "py-rand-tool",
+        "id": "py-rand-tool-id",
+        "base": "core26",
+        "confinement": "strict",
+        "grade": "stable",
+        "status": "active",
+        "channel": "stable",
+        "tracking-channel": "latest/stable",
+        "version": "3.0.21",
+        "revision": 1234,
+        "installed-size": 200_000_000,
+        "mounted-size": 210_000_000,
+        "mounted-from": "/var/lib/snapd/snaps/py-rand-tool_1234.snap",
+        "ignore-validation": False,
+        "devmode": False,
+        "jailmode": False,
+        "contact": "https://example.invalid/support",
+        "publisher": {
+            "id": "publisher-id",
+            "username": "rand",
+            "display-name": "Rand Tools",
+            "validation": "verified",
+        },
+        "apps": [{"name": "py-rand-tool", "daemon": "", "enabled": True}],
+        "summary": "CLI tool",
+    }
+    envelope = {"type": "sync", "status-code": 200, "status": "OK"}
+
+    async def fake_request(method: str, endpoint: str, **kwargs):
+        client.requests.append(endpoint)
+        if endpoint == "snaps":
+            return _response({**envelope, "result": [installed]})
+        if endpoint == "snaps/py-rand-tool":
+            return _response({**envelope, "result": installed})
+        raise AssertionError(f"unexpected endpoint {endpoint}")
+
+    client.request = AsyncMock(side_effect=fake_request)
+
+    state = await get_installed_state(client, "py-rand-tool")
+    assert state.installed is True
+    assert state.error is None
+    assert state.version == "3.0.21"
+    assert state.channel == "latest/stable"
+    assert state.revision == 1234
+
+    rows = await list_installed(client)
+    assert [(row.name, row.version, row.channel) for row in rows] == [
+        ("py-rand-tool", "3.0.21", "latest/stable")
+    ]
+
+    app = make_app(client, preload_snap="py-rand-tool")
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        assert await wait_until(pilot, lambda: isinstance(app.screen, SnapScreen))
+        await settle(app, pilot)
+        assert (
+            str(app.screen.query_one("#is-installed-label", Label).renderable)
+            == "Installed: ✅ (3.0.21)"
+        )
