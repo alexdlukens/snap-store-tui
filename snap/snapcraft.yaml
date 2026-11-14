@@ -1,23 +1,22 @@
 name: store-tui
+title: Snap Store TUI
 base: core24
-version: "0.1.6"
+version: "0.2.0"
 summary: Navigate the Snap Store from the terminal
 description: |
-  A TUI for for navigating the Snap Store.
+  A TUI for browsing, searching, and installing snaps from the Snap Store.
 
-  Designed using the "Textual" Python Library - https://github.com/textualize/textual/
+  Built with the "Textual" Python library - https://github.com/textualize/textual/
 
-  - [✅] Browse the Snap Store
-  - [✅] Search for Snaps
-  - [✅] View Snap Details
-  - [✅] Open Store URL in Browser
-  - [✅] View Installed Snaps
-  - [✅] Install/Uninstall Snaps directly from the TUI
-  - [✅] Browse Snap Channels
-  - [❌] View Snap Revisions
-  - [❌] Sort and Filter Snaps
-  - [❌] Install from alternate stores
+  - Browse featured snaps and categories
+  - Search the Snap Store
+  - View snap details: icon, description, license, architectures, channels
+  - View installed snaps
+  - Install/uninstall snaps directly from the TUI, choosing channel and
+    classic/strict confinement
+  - Open a snap's store page in the browser
 
+icon: snap/gui/store-tui.png
 contact: alexdlukens@gmail.com
 license: "MIT"
 website: https://github.com/alexdlukens/snap-store-tui
@@ -40,9 +39,7 @@ parts:
 apps:
   store-tui:
     command: bin/store-tui
-    plugs: [network, network-bind, desktop, snapd-control, desktop-legacy]
-    environment:
-      PYTHONPATH: $PYTHONPATH:$SNAP
+    plugs: [network, desktop, desktop-legacy, snapd-control]
 
 platforms:
   amd64:
