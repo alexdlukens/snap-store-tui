@@ -1,0 +1,203 @@
+{
+  "channel-map": [
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "stable",
+        "released-at": "2024-10-01T12:00:00+00:00",
+        "risk": "stable",
+        "track": "latest"
+      },
+      "confinement": "strict",
+      "created-at": "2024-10-01T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "f7e15a763c33fac740c02698c345faef62548a9fc8556fae1717844bee799789847f4afdad08e54aa29c2b779f19af80",
+        "size": 7340032,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_210.snap"
+      },
+      "revision": 210,
+      "type": "app",
+      "version": "2.1.0"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "candidate",
+        "released-at": "2024-10-10T12:00:00+00:00",
+        "risk": "candidate",
+        "track": "latest"
+      },
+      "confinement": "strict",
+      "created-at": "2024-10-10T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "bf163c63fda54c3dd3045b0d0d6f7ba060eded2b7f550b66ec59f89bb1e51a739dfb82893c0c0895c3543a74aeaa75d8",
+        "size": 7415808,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_220.snap"
+      },
+      "revision": 220,
+      "type": "app",
+      "version": "2.2.0-rc1"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "beta",
+        "released-at": "2024-10-08T12:00:00+00:00",
+        "risk": "beta",
+        "track": "latest"
+      },
+      "confinement": "strict",
+      "created-at": "2024-10-08T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "a037cfb67816cee6356557055fd4fbbb8d16eecd5875a1f93e145efd6ee39cee0295aeaf1b9299298e1b2bf0c4f80a02",
+        "size": 7405568,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_219.snap"
+      },
+      "revision": 219,
+      "type": "app",
+      "version": "2.2.0-beta2"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "edge",
+        "released-at": "2024-10-12T12:00:00+00:00",
+        "risk": "edge",
+        "track": "latest"
+      },
+      "confinement": "classic",
+      "created-at": "2024-10-12T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "62c6a0583f1a7d495d62cded14d315949c8154c256d77cd32e36ae69393b4a396f86345f479d294b3a3fbe746685e1d9",
+        "size": 7548928,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_231.snap"
+      },
+      "revision": 231,
+      "type": "app",
+      "version": "2.3.0-dev"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "stable",
+        "released-at": "2024-09-01T12:00:00+00:00",
+        "risk": "stable",
+        "track": "2.0"
+      },
+      "confinement": "strict",
+      "created-at": "2024-09-01T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "7cc01fe5e24d45f6acd66cfe93a898f5007effe444f2444a3ebfb4cb49097c735c0815e7346e1c03c0f5bdc25d22477c",
+        "size": 7208960,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_204.snap"
+      },
+      "revision": 204,
+      "type": "app",
+      "version": "2.0.4"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "beta",
+        "released-at": "2024-09-20T12:00:00+00:00",
+        "risk": "beta",
+        "track": "2.0"
+      },
+      "confinement": "strict",
+      "created-at": "2024-09-20T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "482d57f6f53380371f398530d1051ca9944a5f16f46ed92fb31c4f26a96818d8cd742c0d676c7f56469ce1c0fd33eab7",
+        "size": 7225344,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_205.snap"
+      },
+      "revision": 205,
+      "type": "app",
+      "version": "2.0.5-beta1"
+    },
+    {
+      "channel": {
+        "architecture": "amd64",
+        "name": "stable",
+        "released-at": "2024-06-01T12:00:00+00:00",
+        "risk": "stable",
+        "track": "1.0"
+      },
+      "confinement": "strict",
+      "created-at": "2024-06-01T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "53224a5a736a1095575cbe41944c06be9a9dd25bece8919cf78ac183384e19c734d42bdf222f9c33df36c00d1196648a",
+        "size": 6512640,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_109.snap"
+      },
+      "revision": 109,
+      "type": "app",
+      "version": "1.0.9"
+    },
+    {
+      "channel": {
+        "architecture": "arm64",
+        "name": "stable",
+        "released-at": "2024-10-02T12:00:00+00:00",
+        "risk": "stable",
+        "track": "latest"
+      },
+      "confinement": "strict",
+      "created-at": "2024-10-02T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "26451be8a212f7dfada364cbc91bdd2a4287f6234f1e5cb4e8bd068efca7567466121f2c368ee2941b9c1142fe2f5490",
+        "size": 7286784,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_310.snap"
+      },
+      "revision": 310,
+      "type": "app",
+      "version": "2.1.0"
+    },
+    {
+      "channel": {
+        "architecture": "arm64",
+        "name": "edge",
+        "released-at": "2024-10-13T12:00:00+00:00",
+        "risk": "edge",
+        "track": "latest"
+      },
+      "confinement": "classic",
+      "created-at": "2024-10-13T12:00:00+00:00",
+      "download": {
+        "deltas": [],
+        "sha3-384": "ffc483fae0044a3eea2624d59991d4745b95357c9a04992f7aa0f94698c9f65878f60a12e50552febaa11082629583e5",
+        "size": 7493632,
+        "url": "https://api.snapcraft.io/api/v1/snaps/download/CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu_331.snap"
+      },
+      "revision": 331,
+      "type": "app",
+      "version": "2.3.0-dev"
+    }
+  ],
+  "default-track": "latest",
+  "name": "py-rand-tool",
+  "snap": {
+    "license": "unset",
+    "description": "this is a test",
+    "name": "py-rand-tool",
+    "prices": {},
+    "publisher": {
+      "display-name": "Alexander Lukens",
+      "id": "8BowliyePp27bAXZ6jvMrilu4YNchbVq",
+      "username": "alexdlukens",
+      "validation": "unproven"
+    },
+    "snap-id": "CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu",
+    "store-url": "https://snapcraft.io/py-rand-tool",
+    "summary": "Python CLI tool for generating random numbers",
+    "title": "py-rand-tool"
+  },
+  "snap-id": "CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu"
+}

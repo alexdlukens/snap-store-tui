@@ -11,7 +11,8 @@ Snap Store. Built with [Textual](https://github.com/textualize/textual/).
 - Search the Snap Store
 - View installed snaps, including channel and confinement
 - Inspect snap details: icon, description, license, architectures, channels
-- Install and uninstall snaps, choosing channel and classic/strict confinement
+- Install and uninstall snaps with separate track and risk pickers and a
+  strict/classic/devmode/jailmode confinement choice
 - Open a snap's store page in the browser
 
 Features that talk to snapd (installed snaps, install, uninstall) degrade
@@ -24,15 +25,18 @@ gracefully when snapd is unavailable: the rest of the store view keeps working.
 | `q`       | Quit from the store screen; also closes Snap/Install/Error    |
 | `c`       | Open the category picker                                      |
 | `s`       | Open the search dialog                                        |
-| `i`       | List installed snaps; on a snap's details: install / modify   |
+| `i`       | List installed snaps; on details: install / modify; on Install: install or switch |
+| `u`       | On the install screen: uninstall (asks for confirmation)      |
 | `Enter`   | Open the selected snap                                        |
 | `Escape`  | Close the active screen                                       |
-| `↑` `↓`   | Move through the snap list / channel list                     |
+| `↑` `↓`   | Move through the snap list / track and risk panes             |
 
 The app-level bindings (`q`/`c`/`s`/`i`) are inactive while a screen is open.
 Search and Category close with `Escape` only (`q` is consumed as input in Search),
 Snap/Install/Error accept `Escape` or `q`, and Install ignores `Escape` while an
-install or removal is running.
+install or removal is running. On the install screen, `i` installs or switches to
+the selected channel and `u` starts an uninstall; uninstalling asks for confirmation
+first, and cancelling or pressing `Escape` in that dialog removes nothing.
 
 ## Requirements
 

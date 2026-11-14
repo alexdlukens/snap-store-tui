@@ -161,77 +161,114 @@ InstallScreen Footer {
     height: 1;
 }
 
+#install-header {
+    height: auto;
+    padding: 0 1;
+}
+
+#install-title-row {
+    height: auto;
+}
+
+#install-title {
+    text-style: bold;
+    width: auto;
+}
+
+#install-badge {
+    width: 1fr;
+    height: auto;
+    padding-left: 2;
+    color: $text-muted;
+}
+
+#install-subtitle {
+    width: 1fr;
+    height: auto;
+    color: $text-muted;
+}
+
 #install-body {
     height: 1fr;
+    padding: 0;
 }
 
-#install-channels {
+#install-tracks {
+    width: auto;
+}
+
+#install-risks {
+    width: 26;
+    min-width: 26;
+}
+
+#install-side {
     width: 1fr;
-    padding: 0 1;
+    min-width: 34;
+    padding-left: 1;
+    scrollbar-size-vertical: 1;
 }
 
-#install-main {
-    width: 3fr;
-    padding: 0 1;
-}
-
-#channel-list {
+#track-list,
+#risk-list {
     height: 1fr;
     border: round $border;
     background: $panel;
 }
 
+#release-details {
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin-bottom: 0;
+}
+
 #install-unavailable {
+    width: 1fr;
     padding: 1;
     color: $text-muted;
 }
 
-#install-detail {
-    height: 2fr;
-}
-
-#channel-tree {
+#mode-list {
     width: 1fr;
-    padding: 0 1;
-    border: round $border;
-    background: $panel;
-}
-
-#channel-tree > Tree {
-    width: 1fr;
-    height: 1fr;
+    height: 4;
     border: none;
+    background: transparent;
+    scrollbar-size-vertical: 0;
 }
 
-#install-settings {
-    width: 34;
-    min-width: 30;
+#mode-list ListItem {
+    height: 1;
+}
+
+#mode-hint {
+    width: 1fr;
+    height: auto;
     padding: 0 1;
-    border: round $border;
-    background: $panel;
-}
-
-#settings-list {
-    height: 1fr;
+    color: $text-muted;
 }
 
 #install-actions {
     height: auto;
-    padding: 1 0;
+    padding: 0 1;
+    background: $panel;
+    border-top: solid $border;
 }
 
 #install-actions Button {
     margin-right: 1;
+    margin-left: 1;
 }
 
 #install-progress {
     height: auto;
+    padding: 0 1;
 }
 
 #install-status {
     height: auto;
     padding: 0 1;
-    color: $warning;
+    color: $text-muted;
 }
 
 #install-progress > Horizontal {
@@ -252,6 +289,40 @@ InstallScreen Footer {
     padding-left: 1;
     color: $text-muted;
 }
+
+/* ---------------------------------------------------------------- confirm */
+ConfirmScreen {
+    align: center middle;
+}
+
+#confirm-card {
+    width: 60%;
+    max-width: 70;
+    height: auto;
+    padding: 1 2;
+    border: round $border;
+    background: $panel;
+}
+
+#confirm-title {
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#confirm-message {
+    height: auto;
+    padding-bottom: 1;
+}
+
+#confirm-actions {
+    height: auto;
+    align-horizontal: right;
+}
+
+#confirm-actions Button {
+    margin-left: 1;
+}
+
 
 /* ---------------------------------------------------------------- error */
 ErrorScreen {
