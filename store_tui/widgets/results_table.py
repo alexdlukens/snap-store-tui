@@ -134,12 +134,16 @@ class ResultsTable(DataTable):
         self._sync_position(len(self._rows_by_name))
         return len(self._rows_by_name)
 
+    def row_at(self, index: int) -> ResultRow | None:
+        if index < 0 or index >= self.row_count:
+            return None
+        row_key = self.ordered_rows[index].key
+        return self._rows_by_name.get(str(row_key.value))
+
     def current_row(self) -> ResultRow | None:
         if not self._rows_by_name or not self.row_count:
             return None
-        index = max(0, min(self.cursor_row, self.row_count - 1))
-        row_key = self.ordered_rows[index].key
-        return self._rows_by_name.get(str(row_key.value))
+        return self.row_at(max(0, min(self.cursor_row, self.row_count - 1)))
 
     def _column_widths(self) -> tuple[int, int]:
         name = cell_len("Name")

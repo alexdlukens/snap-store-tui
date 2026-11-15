@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import io
 from collections.abc import Iterable
 from pathlib import Path
 
-import httpx
 import humanize
-from PIL import Image
 from rich_pixels import Pixels
 from snap_python.schemas.common import Media
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
@@ -19,6 +16,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Label, Markdown, Static
 
 from store_tui.client import get_platform_architecture
+from store_tui.icons import IconCache
 from store_tui.screens.install import InstallScreen
 from store_tui.snapd import InstalledState, get_installed_state
 from store_tui.widgets.clickable_link import ClickableLink
@@ -47,6 +45,7 @@ class SnapScreen(ModalScreen[None]):
         snap_info: InfoResponse,
         install_state: InstalledState | None,
         client,
+        icon_cache: IconCache | None = None,
     ) -> None:
         super().__init__()
         self.snap_name = snap_name
@@ -54,6 +53,8 @@ class SnapScreen(ModalScreen[None]):
         self.snap = snap_info.snap
         self.install_state = install_state
         self.client = client
+        self.icon_cache = icon_cache if icon_cache is not None else IconCache()
+        self._owns_icon_cache = icon_cache is None
 
         self.title = self.snap.title or self.snap.name or snap_name
         self.publisher = (
@@ -203,16 +204,13 @@ class SnapScreen(ModalScreen[None]):
         url = self._icon_url()
         if not url:
             return
-        try:
-            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as http:
-                response = await http.get(url)
-                response.raise_for_status()
-            with Image.open(io.BytesIO(response.content)) as image:
-                pixels = Pixels.from_image(image, resize=ICON_SIZE)
-        except Exception:
-            return
-        if self.is_mounted:
+        pixels = await self.icon_cache.get_pixels(url, ICON_SIZE)
+        if pixels is not None and self.is_mounted:
             self.icon_widget.update(pixels)
+
+    async def on_unmount(self) -> None:
+        if self._owns_icon_cache:
+            await self.icon_cache.close()
 
     def action_dismiss_screen(self) -> None:
         self.dismiss(None)

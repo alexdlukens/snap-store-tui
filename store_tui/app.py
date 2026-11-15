@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import logging
 from enum import Enum
 from pathlib import Path
 
-import httpx
-from PIL import Image
 from rich.text import Text
 from rich_pixels import Pixels
 from snap_python.schemas.store.info import VALID_SNAP_INFO_FIELDS
@@ -20,6 +17,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import DataTable, Footer, Header, Label, Static
 
 from store_tui.client import client_available, close_client
+from store_tui.icons import IconCache
 from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
@@ -135,11 +133,12 @@ class StoreApp(App):
         self.icon.styles.width = PREVIEW_ICON_SIZE[0]
         self.details = Static("", id="store-details")
         self.details.can_focus = False
-        self._icon_cache: dict[str, Pixels | None] = {}
         self._icon_urls: dict[str, str | None] = {}
         self._icon_pending: set[str] = set()
         self._icon_tasks: set[asyncio.Task] = set()
         self._icon_semaphore = asyncio.Semaphore(MAX_ICON_FETCHES)
+        self.icons = IconCache()
+        self._prefetch_cursor = 0
         self.store_body = Horizontal(id="store-body")
         self.update_title()
 
@@ -189,8 +188,13 @@ class StoreApp(App):
         row = self.results.current_row()
         self.details.update(format_preview(row) if row is not None else Text(""))
         self._show_preview_icon(row)
-        if row is not None:
-            self._request_icon(row)
+        if row is None:
+            return
+        self._request_icon(row)
+        if not self._icon_ready(row):
+            index = self.results.get_row_index(row.name)
+            if index >= self._prefetch_cursor:
+                self._prefetch_batch(index)
 
     def _row_icon_url(self, row: ResultRow | None) -> str | None:
         if row is None:
@@ -199,11 +203,31 @@ class StoreApp(App):
 
     def _show_preview_icon(self, row: ResultRow | None) -> None:
         url = self._row_icon_url(row)
-        self.icon.update(self._icon_cache.get(url) or self._placeholder_icon or "")
+        pixels = (
+            self.icons.cached_pixels(url, PREVIEW_ICON_SIZE)
+            if url is not None
+            else None
+        )
+        self.icon.update(pixels or self._placeholder_icon or "")
 
-    def _prefetch_icons(self, rows: list[ResultRow]) -> None:
-        for row in rows[:MAX_ICON_FETCHES]:
+    def _icon_ready(self, row: ResultRow) -> bool:
+        if row.name in self._icon_urls:
+            url = self._icon_urls[row.name]
+            return url is None or self.icons.has_pixels(url, PREVIEW_ICON_SIZE)
+        return row.icon_url is not None and self.icons.has_pixels(
+            row.icon_url, PREVIEW_ICON_SIZE
+        )
+
+    def _prefetch_batch(self, start: int) -> None:
+        """Prefetch up to ten rows starting at ``start``."""
+        count = 0
+        for index in range(start, start + MAX_ICON_FETCHES):
+            row = self.results.row_at(index)
+            if row is None:
+                break
             self._request_icon(row)
+            count += 1
+        self._prefetch_cursor = max(self._prefetch_cursor, start + count)
 
     def _request_icon(self, row: ResultRow) -> None:
         if not row.name or row.name in self._icon_pending:
@@ -211,7 +235,7 @@ class StoreApp(App):
         if row.name in self._icon_urls and self._icon_urls[row.name] is None:
             return
         url = row.icon_url or self._icon_urls.get(row.name)
-        if url is not None and url in self._icon_cache:
+        if url is not None and self.icons.has_pixels(url, PREVIEW_ICON_SIZE):
             return
         self._icon_pending.add(row.name)
         task = asyncio.create_task(self._load_row_icon(row))
@@ -225,8 +249,8 @@ class StoreApp(App):
                 if url is None:
                     url = await self._resolve_icon_url(row.name)
                 self._icon_urls[row.name] = url
-                if url is not None and url not in self._icon_cache:
-                    self._icon_cache[url] = await self._fetch_preview_icon(url)
+                if url is not None:
+                    await self.icons.get_pixels(url, PREVIEW_ICON_SIZE)
         finally:
             self._icon_pending.discard(row.name)
         if self.is_mounted:
@@ -252,22 +276,13 @@ class StoreApp(App):
         if row is not None and row.name == name:
             self._show_preview_icon(row)
 
-    async def _fetch_preview_icon(self, url: str) -> Pixels | None:
-        try:
-            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as http:
-                response = await http.get(url)
-                response.raise_for_status()
-            with Image.open(io.BytesIO(response.content)) as image:
-                return Pixels.from_image(image, resize=PREVIEW_ICON_SIZE)
-        except Exception:
-            return None
-
     async def on_unmount(self) -> None:
         tasks = tuple(self._icon_tasks)
         for task in tasks:
             task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+        await self.icons.close()
         await close_client(self.client)
 
     # ------------------------------------------------------------------ state
@@ -317,7 +332,11 @@ class StoreApp(App):
         )
         self.empty_state.update(self._empty_message())
         self.empty_state.display = count == 0
-        self._prefetch_icons(rows)
+        if append:
+            self._prefetch_batch(self._prefetch_cursor)
+        else:
+            self._prefetch_cursor = 0
+            self._prefetch_batch(0)
         self._refresh_preview()
         self._apply_layout()
 
@@ -575,6 +594,7 @@ class StoreApp(App):
             snap_info=snap_info,
             install_state=install_state,
             client=self.client,
+            icon_cache=self.icons,
         )
         if wait_for_dismiss:
             await self.push_screen(screen, wait_for_dismiss=True)

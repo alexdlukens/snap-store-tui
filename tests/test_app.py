@@ -9,16 +9,17 @@ import sys
 from unittest.mock import AsyncMock
 
 import pytest
-from rich_pixels import Pixels
 from snap_python.utils import SnapdAPIError
 from textual.widgets import Checkbox, DataTable, Input, Label, OptionList, Select
 
 from store_tui.app import (
     PREVIEW_ICON_PATH,
+    PREVIEW_ICON_SIZE,
     BrowseMode,
     StoreApp,
     format_preview,
 )
+from store_tui.icons import IconCache
 from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
@@ -177,15 +178,15 @@ async def test_main_preview_stacks_when_too_narrow(client: FakeClient) -> None:
         assert icon.region.y < details.region.y
 
 
-async def test_preview_prefetches_icons_in_batches_of_ten(
+async def test_preview_prefetches_ten_then_loads_another_batch(
     client: FakeClient, monkeypatch
 ) -> None:
-    icon = Pixels.from_image_path(PREVIEW_ICON_PATH, resize=(4, 4))
+    icon_bytes = PREVIEW_ICON_PATH.read_bytes()
     gate = asyncio.Event()
     requested: list[str] = []
     active = 0
 
-    async def fake_fetch(self, url: str) -> Pixels | None:
+    async def fake_download(self, url: str) -> bytes:
         nonlocal active
         requested.append(url)
         active += 1
@@ -193,9 +194,9 @@ async def test_preview_prefetches_icons_in_batches_of_ten(
             await gate.wait()
         finally:
             active -= 1
-        return icon
+        return icon_bytes
 
-    monkeypatch.setattr(StoreApp, "_fetch_preview_icon", fake_fetch)
+    monkeypatch.setattr(IconCache, "_download", fake_download)
     app = make_app(client)
     async with app.run_test(size=TERMINAL_SIZE) as pilot:
         await settle(app, pilot)
@@ -205,39 +206,46 @@ async def test_preview_prefetches_icons_in_batches_of_ten(
                 title=f"Snap {index}",
                 icon_url=f"https://icons.test/{index}.png",
             )
-            for index in range(15)
+            for index in range(40)
         ]
         app._apply_rows(rows)
 
         assert await wait_until(pilot, lambda: len(requested) == 10)
         assert active == 10
+        assert app._prefetch_cursor == 10
 
-        app.results.move_cursor(row=14)
+        app.results.move_cursor(row=10)
         await pilot.pause()
+        assert app._prefetch_cursor == 20
+        assert len(app._icon_pending) == 20
         assert len(requested) == 10
         assert active == 10
 
         gate.set()
-        assert await wait_until(pilot, lambda: "https://icons.test/14.png" in requested)
+        assert await wait_until(pilot, lambda: len(requested) == 20)
+        current_url = "https://icons.test/10.png"
+        assert current_url in requested
         assert await wait_until(
             pilot,
-            lambda: app._icon_cache.get("https://icons.test/14.png") is icon,
+            lambda: app.icons.cached_pixels(current_url, PREVIEW_ICON_SIZE) is not None,
         )
         await pilot.pause()
-        assert app.icon.renderable is icon
+        assert app.icon.renderable is app.icons.cached_pixels(
+            current_url, PREVIEW_ICON_SIZE
+        )
 
 
 async def test_preview_resolves_icon_without_search_media(
     client: FakeClient, monkeypatch
 ) -> None:
-    icon = Pixels.from_image_path(PREVIEW_ICON_PATH, resize=(4, 4))
+    icon_bytes = PREVIEW_ICON_PATH.read_bytes()
     url = "https://icons.test/alpha.png"
 
-    async def fake_fetch(self, icon_url: str) -> Pixels | None:
+    async def fake_download(self, icon_url: str) -> bytes:
         assert icon_url == url
-        return icon
+        return icon_bytes
 
-    monkeypatch.setattr(StoreApp, "_fetch_preview_icon", fake_fetch)
+    monkeypatch.setattr(IconCache, "_download", fake_download)
     client.store.get_snap_info.return_value = with_snap_info(
         SNAP_INFO,
         snap={"name": "alpha", "media": [{"type": "icon", "url": url}]},
@@ -247,10 +255,52 @@ async def test_preview_resolves_icon_without_search_media(
         await settle(app, pilot)
         app._apply_rows([ResultRow(name="alpha", title="Alpha")])
 
-        assert await wait_until(pilot, lambda: app._icon_cache.get(url) is icon)
+        assert await wait_until(
+            pilot,
+            lambda: app.icons.cached_pixels(url, PREVIEW_ICON_SIZE) is not None,
+        )
         await pilot.pause()
-        assert app.icon.renderable is icon
+        assert app.icon.renderable is app.icons.cached_pixels(url, PREVIEW_ICON_SIZE)
         assert client.store.get_snap_info.await_args.kwargs["fields"] == ["media"]
+
+
+async def test_snap_screen_reuses_prefetched_icon(
+    client: FakeClient, monkeypatch
+) -> None:
+    icon_bytes = PREVIEW_ICON_PATH.read_bytes()
+    url = "https://icons.test/alpha.png"
+    downloads: list[str] = []
+
+    async def fake_download(self, icon_url: str) -> bytes:
+        downloads.append(icon_url)
+        return icon_bytes
+
+    monkeypatch.setattr(IconCache, "_download", fake_download)
+    monkeypatch.setattr(
+        "store_tui.screens.snap.get_platform_architecture", lambda: "amd64"
+    )
+    monkeypatch.setattr(
+        "store_tui.screens.install.get_platform_architecture", lambda: "amd64"
+    )
+    client.store.retry_get_snap_info.return_value = with_snap_info(
+        SNAP_INFO,
+        snap={"name": "alpha", "media": [{"type": "icon", "url": url}]},
+    )
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        app._apply_rows([ResultRow(name="alpha", title="Alpha", icon_url=url)])
+        assert await wait_until(
+            pilot,
+            lambda: app.icons.cached_pixels(url, PREVIEW_ICON_SIZE) is not None,
+        )
+
+        await app.open_snap("alpha")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, SnapScreen))
+        await settle(app, pilot)
+
+        assert downloads == [url]
+        assert app.icons.cached_pixels(url, (16, 16)) is not None
 
 
 async def test_category_selection_updates_rows_and_title(client: FakeClient) -> None:
@@ -511,6 +561,7 @@ async def test_row_selection_opens_snap_screen(client: FakeClient, monkeypatch) 
         assert isinstance(app.screen, SnapScreen)
         screen = app.screen
         assert screen.title == "py-rand-tool"
+        assert screen.icon_cache is app.icons
         client.store.retry_get_snap_info.assert_awaited_once()
         assert (
             client.store.retry_get_snap_info.await_args.kwargs["snap_name"] == "vivaldi"
