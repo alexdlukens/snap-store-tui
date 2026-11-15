@@ -245,8 +245,10 @@ async def test_not_installed_installs_selected_channel_and_mode(
         await pilot.click("#install-button")
         assert await wait_until(
             pilot,
-            lambda: client.snaps.install_snap.await_count == 1
-            and not screen._change_running,
+            lambda: (
+                client.snaps.install_snap.await_count == 1
+                and not screen._change_running
+            ),
         )
         await settle(app, pilot)
 
@@ -323,8 +325,10 @@ async def test_installed_on_selected_channel_updates(monkeypatch) -> None:
         await pilot.click("#install-button")
         assert await wait_until(
             pilot,
-            lambda: client.snaps.refresh_snap.await_count == 1
-            and not screen._change_running,
+            lambda: (
+                client.snaps.refresh_snap.await_count == 1
+                and not screen._change_running
+            ),
         )
         await settle(app, pilot)
 
@@ -354,8 +358,10 @@ async def test_installed_on_other_channel_switches(monkeypatch) -> None:
         await pilot.click("#install-button")
         assert await wait_until(
             pilot,
-            lambda: client.snaps.switch_channel.await_count == 1
-            and not screen._change_running,
+            lambda: (
+                client.snaps.switch_channel.await_count == 1
+                and not screen._change_running
+            ),
         )
         await settle(app, pilot)
 
@@ -415,15 +421,17 @@ async def test_revert_confirmation_reverts_snap(monkeypatch) -> None:
         assert await wait_until(pilot, lambda: isinstance(app.screen, ConfirmScreen))
         assert await wait_until(
             pilot,
-            lambda: str(app.screen.query_one("#confirm-title").renderable)
-            == "Revert snap?",
+            lambda: (
+                str(app.screen.query_one("#confirm-title").renderable) == "Revert snap?"
+            ),
         )
 
         await pilot.click("#confirm-confirm")
         assert await wait_until(
             pilot,
-            lambda: client.snaps.revert_snap.await_count == 1
-            and not screen._change_running,
+            lambda: (
+                client.snaps.revert_snap.await_count == 1 and not screen._change_running
+            ),
         )
         await settle(app, pilot)
 
@@ -448,8 +456,9 @@ async def test_uninstall_confirmation_removes_snap_with_data(monkeypatch) -> Non
         await pilot.click("#confirm-confirm")
         assert await wait_until(
             pilot,
-            lambda: client.snaps.remove_snap.await_count == 1
-            and not screen._change_running,
+            lambda: (
+                client.snaps.remove_snap.await_count == 1 and not screen._change_running
+            ),
         )
         await settle(app, pilot)
 

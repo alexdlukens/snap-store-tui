@@ -169,7 +169,7 @@ def snap_url_handler() -> str | None:
             timeout=HANDLER_QUERY_TIMEOUT,
             env={**os.environ, "LC_ALL": "C"},
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     if completed.returncode != 0:
         return None

@@ -225,6 +225,6 @@ async def list_revisions(client: Any, name: str) -> list[InstalledSnapRow]:
 def _revision_sort_key(row: InstalledSnapRow) -> tuple[int, str]:
     try:
         revision = int(row.revision)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         revision = -1
     return revision, row.status or ""

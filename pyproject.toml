@@ -3,7 +3,7 @@ name = "store-tui"
 version = "0.2.0"
 description = "A terminal user interface for browsing, searching, and installing snaps from the Snap Store."
 readme = "README.md"
-requires-python = ">=3.12,<4.0"
+requires-python = ">=3.14,<4.0"
 license = "MIT"
 authors = [{ name = "Alexander Lukens", email = "alexdlukens@gmail.com" }]
 keywords = ["snap", "store", "snapcraft", "tui", "terminal", "cli"]
@@ -13,7 +13,7 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: User Interfaces",
     "Topic :: Terminals",
 ]
@@ -36,7 +36,7 @@ store-tui = "store_tui.main:main"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.6.5,<0.7.0",
+    "ruff>=0.12.0,<0.18.0",
     "pytest>=8.3.3,<9.0.0",
     "ipykernel>=6.29.5,<7.0.0",
     "textual-dev>=1.6.1,<2.0.0",
@@ -50,7 +50,7 @@ requires = ["uv_build>=0.13.5,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 88
 extend-exclude = [".venv"]
 
