@@ -114,8 +114,11 @@ make lock        # refresh uv.lock
 make clean       # remove build and cache artifacts
 ```
 
-Snap builds use the `uv` plugin with `core24`; `astral-uv` is installed as a
-build snap and dependencies come from `uv.lock`.
+Snap builds use the `uv` plugin with `core26`; `astral-uv` is installed as a
+build snap and dependencies come from `uv.lock`. The snap version is adopted
+from `pyproject.toml` (`adopt-info` plus `uv version --short` in the part's
+`override-pull`), so the project version is the only place the release number
+is set.
 
 Publishing a GitHub release builds the wheel with `uv build --wheel` and
 attaches it to that release (`.github/workflows/release.yml`). Run the workflow

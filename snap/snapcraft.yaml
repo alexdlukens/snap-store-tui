@@ -1,7 +1,7 @@
 name: store-tui
+adopt-info: store_tui  # snap version is read from pyproject.toml, see override-pull below
 title: Snap Store TUI
 base: core26
-version: "0.2.0"
 summary: Navigate the Snap Store from the terminal
 description: |
   A TUI for browsing, searching, and installing snaps from the Snap Store.
@@ -42,6 +42,10 @@ parts:
     after: [python-runtime]
     plugin: uv
     source: .
+    # adopt-info above reads the version this sets; uv comes from build-snaps.
+    override-pull: |
+      craftctl default
+      craftctl set version="$(uv version --short)"
     # The plugin relinks only bin/python3 to the staged interpreter. uv's
     # relocatable venv also writes bin/python and bin/python3.14 as absolute
     # links to /usr/bin/python3.14, which at runtime resolve into the
