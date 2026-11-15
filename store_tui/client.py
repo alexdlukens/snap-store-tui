@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import platform
 from typing import Any
 
@@ -23,7 +24,9 @@ _ARCHITECTURE_MAP = {
     "i486": "i386",
     "i586": "i386",
     "i686": "i386",
+    "ppc64": "ppc64el",
     "ppc64le": "ppc64el",
+    "powerpc": "powerpc",
     "s390x": "s390x",
     "riscv64": "riscv64",
 }
@@ -51,10 +54,22 @@ def create_client(
 
 
 async def close_client(client: Any) -> None:
-    """Close any HTTP clients owned by ``client``, ignoring objects that lack them.
+    """Close the HTTP clients owned by ``client``.
 
-    Tolerant by design: tests and embedders may supply lightweight stand-ins.
+    Prefers the 0.2.0 ``SnapClient.close()``; falls back to the individual
+    clients for the lightweight stand-ins used by tests and embedders.
     """
+    close = getattr(client, "close", None)
+    if callable(close):
+        try:
+            result = close()
+            if inspect.isawaitable(result):
+                await result
+            return
+        except Exception:
+            # Fall through to the tolerant path below.
+            pass
+
     closers = []
     for owner in (client, getattr(client, "store", None)):
         if owner is None:
@@ -66,6 +81,23 @@ async def close_client(client: Any) -> None:
                 closers.append(aclose())
     if closers:
         await asyncio.gather(*closers, return_exceptions=True)
+
+
+async def client_available(client: Any) -> bool:
+    """Return True when snapd answered a health probe."""
+    is_available = getattr(client, "is_available", None)
+    if callable(is_available):
+        try:
+            return bool(await is_available())
+        except Exception:
+            return False
+
+    try:
+        response = await client.ping()
+    except Exception:
+        return False
+    status = getattr(response, "status_code", None)
+    return isinstance(status, int) and 200 <= status < 300
 
 
 def get_platform_architecture() -> str:

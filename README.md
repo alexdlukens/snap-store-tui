@@ -8,15 +8,22 @@ Snap Store. Built with [Textual](https://github.com/textualize/textual/).
 ## Features
 
 - Browse featured snaps and categories
-- Search the Snap Store
-- View installed snaps, including channel and confinement
-- Inspect snap details: icon, description, license, architectures, channels
-- Install and uninstall snaps with separate track and risk pickers and a
-  strict/classic/devmode/jailmode confinement choice
+- Search with store filters: confinement, category, publisher, architecture,
+  channel, name prefix, and featured-only. Results update live as the form
+  changes, the last query/filters are restored when you reopen the form, and
+  plain queries support load-more
+- Inspect snap details: icon, description, license, architectures, base, type,
+  confinement, download size, and channels
+- Install with separate track and risk pickers and a strict/classic/devmode/
+  jailmode confinement choice
+- Manage installed snaps in a dedicated screen: refresh, remove, hold/unhold
+  refreshes, revert, disable/enable, and read service logs
+- Watch snapd changes with live progress and cancel an operation
+- Inspect recent and in-progress snapd changes in the Activity screen
 - Open a snap's store page in the browser
 - Jump from the details screen to App Center through its `snap://` deep link
 
-Features that talk to snapd (installed snaps, install, uninstall) degrade
+Features that talk to snapd (installed snaps, install, management) degrade
 gracefully when snapd is unavailable: the rest of the store view keeps working.
 
 ## Keyboard bindings
@@ -25,19 +32,24 @@ gracefully when snapd is unavailable: the rest of the store view keeps working.
 | --------- | ------------------------------------------------------------- |
 | `q`       | Quit from the store screen; also closes Snap/Install/Error    |
 | `c`       | Open the category picker                                      |
-| `s`       | Open the search dialog                                        |
-| `i`       | List installed snaps; on details: install / modify; on Install: install or switch |
-| `u`       | On the install screen: uninstall (asks for confirmation)      |
-| `Enter`   | Open the selected snap                                        |
+| `s`       | Open the search form (query and filters)                      |
+| `i`       | Open the installed-snaps management screen                    |
+| `a`       | Open the snapd Activity screen                                |
+| `m`       | Load more search results (plain queries)                      |
+| `Enter`   | Open the selected snap or installed details                   |
 | `Escape`  | Close the active screen                                       |
-| `↑` `↓`   | Move through the snap list / track and risk panes             |
+| `↑` `↓`   | Move through lists and panes                                  |
 
-The app-level bindings (`q`/`c`/`s`/`i`) are inactive while a screen is open.
-Search and Category close with `Escape` only (`q` is consumed as input in Search),
-Snap/Install/Error accept `Escape` or `q`, and Install ignores `Escape` while an
-install or removal is running. On the install screen, `i` installs or switches to
-the selected channel and `u` starts an uninstall; uninstalling asks for confirmation
-first, and cancelling or pressing `Escape` in that dialog removes nothing.
+On the Install screen, `i` installs, updates, or switches to the selected
+channel, `r` reverts, `u` starts an uninstall, and Cancel aborts a running snapd
+change. On the Installed screen, `r` refreshes, `u` removes, `h` holds, `v`
+reverts, `d` disables/enables, and `l` shows logs. Destructive actions ask for
+confirmation first.
+
+The app-level bindings are inactive while a screen is open. Search and Category
+close with `Escape` only (`q` is consumed as input in Search). Snap/Install/Error
+accept `Escape` or `q`; Install and Installed refuse to close while a change is
+running, but offer Cancel.
 
 ## Requirements
 
@@ -107,13 +119,17 @@ store_tui/
   app.py         Textual application: store screen, bindings, workers
   client.py      snapd and store client setup
   launcher.py    opens external URLs (App Center deep links) without a browser
-  snapd.py       snapd socket-backed installed/install/uninstall operations
-  screens/       category, search, snap details, install, error screens
+  snapd.py       typed installed-snap adapter over snap-python 0.2.0
+  changes.py     shared change watching and progress formatting
+  errors.py      snapd error-kind hints
+  search.py      search filters, pagination helpers, row conversion
+  screens/       category, search, snap details, install, installed,
+                 activity, hold, logs, confirm, error
   widgets/       results table, channel tree, links, progress
   styles/app.tcss
   assets/        placeholder.png
 snap/            snapcraft packaging and desktop integration
-tests/           test_app.py and fixtures (tests/data)
+tests/           app/screen/foundation tests and fixtures (tests/data)
 ```
 
 ## License

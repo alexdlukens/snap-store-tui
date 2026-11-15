@@ -7,7 +7,6 @@ from contextlib import suppress
 
 from rich.table import Table
 from rich.text import Text
-from snap_python.schemas.common import BaseErrorResult
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
 from textual import on
 from textual.app import ComposeResult
@@ -15,6 +14,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Label, ListItem, ListView, Static
 
+from store_tui.changes import progress_of, watch_change
 from store_tui.channels import (
     MODE_HINTS,
     MODES,
@@ -36,8 +36,14 @@ from store_tui.screens.confirm import ConfirmScreen
 from store_tui.snapd import InstalledState, get_installed_state
 from store_tui.widgets.progress import ProgressBarWithMessage
 
-CHANGE_TIMEOUT = 300.0
 IN_PROGRESS_MESSAGE = "Operation in progress — please wait"
+ACTION_TITLES = {
+    "install": "installing snap",
+    "refresh": "updating snap",
+    "switch": "switching channel",
+    "revert": "reverting snap",
+    "remove": "uninstalling snap",
+}
 
 
 class InstallScreen(ModalScreen[InstalledState | None]):
@@ -48,6 +54,7 @@ class InstallScreen(ModalScreen[InstalledState | None]):
         ("q", "dismiss_screen", "Close"),
         ("i", "start_install", "Install"),
         ("u", "request_uninstall", "Uninstall"),
+        ("r", "revert", "Revert"),
     ]
 
     def __init__(
@@ -77,6 +84,8 @@ class InstallScreen(ModalScreen[InstalledState | None]):
         )
         self.same_channel_installed = False
         self._change_running = False
+        self._change_id: str | None = None
+        self._cancel_requested = False
         self._mode_explicit = False
 
         # Initial selection defaults, then populate the panes.
@@ -157,6 +166,17 @@ class InstallScreen(ModalScreen[InstalledState | None]):
             variant="error",
             disabled=True,
         )
+        self.revert_button = Button(
+            "Revert",
+            id="revert-button",
+            disabled=True,
+        )
+        self.cancel_button = Button(
+            "Cancel",
+            id="cancel-button",
+            variant="warning",
+        )
+        self.cancel_button.display = False
         self.progress = ProgressBarWithMessage(id="install-progress")
         self.progress.display = False
         self.status_label = Label("", id="install-status")
@@ -198,6 +218,8 @@ class InstallScreen(ModalScreen[InstalledState | None]):
         yield Horizontal(
             self.install_button,
             self.uninstall_button,
+            self.revert_button,
+            self.cancel_button,
             id="install-actions",
         )
         yield self.progress
@@ -207,7 +229,7 @@ class InstallScreen(ModalScreen[InstalledState | None]):
     def on_mount(self) -> None:
         self._refresh_installed_buttons()
         self.track_list.focus()
-        if self.client is not None and self.channels:
+        if self.client is not None:
             self.run_worker(
                 self._refresh_installed(),
                 group="install-state",
@@ -395,22 +417,23 @@ class InstallScreen(ModalScreen[InstalledState | None]):
 
     def _install_button_label(self) -> str:
         label = self._selected_label()
-        if not self.channels:
+        if not self.channels or label is None:
             return "Install"
         if not self.is_installed:
-            return f"Install {label}" if label else "Install"
+            return f"Install {label}"
         if self.same_channel_installed:
-            return f"Installed from {label}"
-        return f"Switch to {label}" if label else "Switch channel"
+            return f"Update from {label}"
+        return f"Switch to {label}"
 
     def _refresh_buttons(self) -> None:
         self.install_button.label = self._install_button_label()
         self.install_button.disabled = (
-            not self.channels or self._change_running or self.same_channel_installed
+            self._change_running or not self.channels or self._selected_label() is None
         )
-        self.uninstall_button.disabled = (
-            not self.channels or self._change_running or not self.is_installed
-        )
+        self.uninstall_button.disabled = self._change_running or not self.is_installed
+        self.revert_button.disabled = self._change_running or not self.is_installed
+        self.cancel_button.display = self._change_running
+        self.cancel_button.disabled = self._cancel_requested
 
     def _refresh_installed_buttons(self) -> None:
         self._update_installed_flags()
@@ -435,6 +458,14 @@ class InstallScreen(ModalScreen[InstalledState | None]):
     def _uninstall_pressed(self) -> None:
         self._request_uninstall()
 
+    @on(Button.Pressed, "#revert-button")
+    def _revert_pressed(self) -> None:
+        self._request_revert()
+
+    @on(Button.Pressed, "#cancel-button")
+    async def _cancel_pressed(self) -> None:
+        await self._request_cancel()
+
     def action_start_install(self) -> None:
         if self._change_running:
             self._warn(IN_PROGRESS_MESSAGE)
@@ -442,23 +473,25 @@ class InstallScreen(ModalScreen[InstalledState | None]):
         if not self.channels:
             self._warn(f"No channels for {self.architecture}")
             return
-        if self.same_channel_installed:
-            self._warn(f"Already installed from {self._selected_label()}")
-            return
         if self.client is None:
             self._warn("snapd is unavailable")
             return
-        self._start_change(install=True)
+        if not self.is_installed:
+            self._start_change("install")
+        elif self.same_channel_installed:
+            self._start_change("refresh")
+        else:
+            self._start_change("switch")
 
     def action_request_uninstall(self) -> None:
         self._request_uninstall()
 
+    def action_revert(self) -> None:
+        self._request_revert()
+
     def _request_uninstall(self) -> None:
         if self._change_running:
             self._warn(IN_PROGRESS_MESSAGE)
-            return
-        if not self.channels:
-            self._warn(f"No channels for {self.architecture}")
             return
         if not self.is_installed:
             self._warn(f"Nothing to uninstall — {self._snap_name()} is not installed")
@@ -479,102 +512,172 @@ class InstallScreen(ModalScreen[InstalledState | None]):
             callback=self._uninstall_confirmed,
         )
 
+    def _request_revert(self) -> None:
+        if self._change_running:
+            self._warn(IN_PROGRESS_MESSAGE)
+            return
+        if not self.is_installed:
+            self._warn(f"Nothing to revert — {self._snap_name()} is not installed")
+            return
+        if self.client is None:
+            self._warn("snapd is unavailable")
+            return
+        self.app.push_screen(
+            ConfirmScreen(
+                "Revert snap?",
+                f"Revert {self._snap_name()} to its previous revision?",
+                confirm_label="Revert",
+            ),
+            callback=self._revert_confirmed,
+        )
+
     def _warn(self, message: str) -> None:
         self.notify(message, severity="warning", timeout=3)
 
     def _uninstall_confirmed(self, confirmed: bool | None) -> None:
         if confirmed is not True or not self.is_mounted:
             return
-        self._start_change(install=False)
+        self._start_change("remove")
 
-    def _start_change(self, install: bool) -> None:
+    def _revert_confirmed(self, confirmed: bool | None) -> None:
+        if confirmed is not True or not self.is_mounted:
+            return
+        self._start_change("revert")
+
+    async def _request_cancel(self) -> None:
+        if not self._change_running or self._cancel_requested:
+            return
+        self._cancel_requested = True
+        self._refresh_buttons()
+        self.status_label.update("Cancelling…")
+        self.status_label.display = True
+        change_id = self._change_id
+        if change_id is None:
+            return
+        try:
+            await self.client.changes.abort(change_id)
+        except Exception as error:
+            # An abort race must not replace a working screen with an error.
+            self._cancel_requested = False
+            self._refresh_buttons()
+            self._warn(f"Could not cancel operation: {error}")
+
+    def _start_change(self, action: str) -> None:
         if self._change_running or self.client is None:
             return
         self._change_running = True
-        self.install_button.disabled = True
-        self.uninstall_button.disabled = True
+        self._change_id = None
+        self._cancel_requested = False
+        self._refresh_buttons()
         self.progress.display = True
         self.status_label.update(IN_PROGRESS_MESSAGE)
         self.status_label.display = True
         self.progress.update_progress(0, None, "Starting…")
         self.run_worker(
-            self._run_change(install),
+            self._run_change(action),
             group=f"install:{self.snap_info.name}",
             name="install-change",
             exclusive=True,
         )
 
-    async def _run_change(self, install: bool) -> None:
-        action = "installing" if install else "uninstalling"
+    async def _run_change(self, action: str) -> None:
+        name = self.snap_info.name
         channel = self._selected_label()
         success_message: str | None = None
         cancelled = False
+        failed = False
         try:
-            if install:
-                flags = mode_flags(self.mode)
-                response = await self.client.snaps.install_snap(
-                    snap=self.snap_info.name,
-                    channel=channel or "stable",
-                    classic=flags["classic"],
-                    dangerous=False,
-                    devmode=flags["devmode"],
-                    jailmode=flags["jailmode"],
-                    wait=False,
-                )
-            else:
-                response = await self.client.snaps.remove_snap(
-                    self.snap_info.name, purge=True, terminate=True, wait=False
-                )
+            response = await self._request_change(action)
             change_id = getattr(response, "change", None)
             if change_id is None:
                 raise RuntimeError("snapd did not return a change id")
-            await self._wait_for_change(str(change_id))
+            self._change_id = str(change_id)
+            if self._cancel_requested:
+                with suppress(Exception):
+                    await self.client.changes.abort(self._change_id)
+            await watch_change(
+                self.client,
+                self._change_id,
+                on_change=self._progress_change,
+            )
             self.progress.update_progress(1, 1, "Operation complete")
-            if install:
-                success_message = f"Installed {self.snap_info.name} from {channel}"
+            if self._cancel_requested:
+                cancelled = True
+            elif action == "install":
+                success_message = f"Installed {name} from {channel}"
+            elif action == "refresh":
+                success_message = f"Updated {name} from {channel}"
+            elif action == "switch":
+                success_message = f"Switched {name} to {channel}"
+            elif action == "revert":
+                success_message = f"Reverted {name}"
             else:
-                success_message = f"Removed {self.snap_info.name} and its data"
+                success_message = f"Removed {name} and its data"
         except asyncio.CancelledError:
             cancelled = True
             self.progress.update_progress(0, None, "Cancelled")
             raise
         except Exception as error:
-            self.progress.update_progress(0, None, "Operation failed")
-            self._show_error(error, f"Error - {action} snap")
+            if self._cancel_requested:
+                cancelled = True
+            else:
+                failed = True
+                self.progress.update_progress(0, None, "Operation failed")
+                self._show_error(error, f"Error - {ACTION_TITLES[action]}")
         finally:
             self._change_running = False
+            self._change_id = None
             if self.is_mounted:
                 self.progress.display = False
                 if success_message is not None:
                     self.status_label.update(success_message)
                     self.status_label.display = True
-                elif not cancelled:
+                elif cancelled:
+                    self.progress.update_progress(0, None, "Operation cancelled")
+                    self.status_label.update("Operation cancelled")
+                    self.status_label.display = True
+                elif failed:
                     self.status_label.update("Operation failed")
                     self.status_label.display = True
+                self._refresh_buttons()
             if self.is_mounted and self.client is not None:
                 with suppress(asyncio.CancelledError):
                     await self._refresh_installed()
 
-    async def _wait_for_change(self, change_id: str) -> None:
-        async with asyncio.timeout(CHANGE_TIMEOUT):
-            async for change in self.client.get_changes_by_id_generator(change_id):
-                result = change.result
-                if isinstance(result, BaseErrorResult):
-                    raise RuntimeError(result.message)
-                error = getattr(result, "err", None)
-                if error:
-                    raise RuntimeError(str(error))
-                if change.ready:
-                    total = max(result.overall_progress.total, 1)
-                    self.progress.update_progress(total, total, "Operation complete")
-                    return
+    async def _request_change(self, action: str):
+        name = self.snap_info.name
+        if action == "install":
+            flags = mode_flags(self.mode)
+            return await self.client.snaps.install_snap(
+                snap=name,
+                channel=self._selected_label(),
+                classic=flags["classic"],
+                dangerous=False,
+                devmode=flags["devmode"],
+                jailmode=flags["jailmode"],
+                wait=False,
+            )
+        if action == "refresh":
+            return await self.client.snaps.refresh_snap(name, channel=None, wait=False)
+        if action == "switch":
+            return await self.client.snaps.switch_channel(
+                name, channel=self._selected_label(), wait=False
+            )
+        if action == "revert":
+            return await self.client.snaps.revert_snap(name, wait=False)
+        return await self.client.snaps.remove_snap(
+            name, purge=True, terminate=True, wait=False
+        )
 
-                overall = result.overall_progress
-                total = overall.total if overall.total and overall.total > 0 else None
-                active = [task for task in result.tasks if task.status == "Doing"]
-                message = active[0].summary if active else "Working…"
-                self.progress.update_progress(overall.done, total, message)
-        raise RuntimeError("change stream ended before completion")
+    def _progress_change(self, change) -> None:
+        if not self.is_mounted:
+            return
+        done, total, message = progress_of(change)
+        if change.ready:
+            complete = total or done or 1
+            self.progress.update_progress(complete, complete, "Operation complete")
+            return
+        self.progress.update_progress(done, total, message)
 
     def _show_error(self, error: BaseException, title: str) -> None:
         show_error = getattr(self.app, "show_error", None)

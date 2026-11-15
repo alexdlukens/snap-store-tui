@@ -9,13 +9,14 @@ from snap_python.schemas.store.search import SearchResponse
 from textual import on
 from textual.widgets import DataTable, Label
 
-TABLE_COLUMNS = ("Name", "Description")
+TABLE_COLUMNS = ("Name", "Version", "Description")
 
 
 @dataclass(frozen=True)
 class ResultRow:
     name: str
     summary: str = ""
+    version: str = ""
 
 
 def rows_from_search_response(
@@ -28,7 +29,10 @@ def rows_from_search_response(
         summary = ""
         if result.snap is not None and result.snap.summary:
             summary = str(result.snap.summary)
-        rows.append(ResultRow(name=result.name, summary=summary))
+        version = ""
+        if result.revision is not None and result.revision.version:
+            version = str(result.revision.version)
+        rows.append(ResultRow(name=result.name, summary=summary, version=version))
     return rows
 
 
@@ -59,6 +63,7 @@ class ResultsTable(DataTable):
         super().__init__(**kwargs)
         self._table_columns = tuple(columns)
         self._position_count = position_count
+        self._row_names: set[str] = set()
 
     def on_mount(self) -> None:
         self.cursor_type = "row"
@@ -70,18 +75,29 @@ class ResultsTable(DataTable):
     def set_rows(self, rows: Iterable[ResultRow] | None) -> int:
         """Replace the table contents synchronously and return the row count."""
         self.clear(columns=False)
-        seen: set[str] = set()
+        self._row_names = set()
+        self._add_unique(rows)
+        self._sync_position(len(self._row_names))
+        return len(self._row_names)
+
+    def append_rows(self, rows: Iterable[ResultRow] | None) -> int:
+        """Append unseen rows and return the total number of rows."""
+        self._add_unique(rows)
+        self._sync_position(len(self._row_names))
+        return len(self._row_names)
+
+    def _add_unique(self, rows: Iterable[ResultRow] | None) -> None:
         for row in rows or []:
-            if not row.name or row.name in seen:
+            if not row.name or row.name in self._row_names:
                 continue
-            seen.add(row.name)
-            self.add_row(row.name, row.summary, key=row.name)
-        self._sync_position(len(seen))
-        return len(seen)
+            self._row_names.add(row.name)
+            self.add_row(row.name, row.version, row.summary, key=row.name)
 
     def _sync_position(self, total: int) -> None:
-        if self._position_count is not None:
-            self._position_count.set_position(1 if total else 0, total)
+        if self._position_count is None:
+            return
+        current = min(self.cursor_row, total - 1) + 1 if total else 0
+        self._position_count.set_position(current, total)
 
     @on(DataTable.RowHighlighted)
     def _track_highlight(self, event: DataTable.RowHighlighted) -> None:

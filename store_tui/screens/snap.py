@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Iterable
 from pathlib import Path
 
 import httpx
@@ -60,7 +61,7 @@ class SnapScreen(ModalScreen[None]):
             if self.snap.publisher is not None
             else "Unknown publisher"
         )
-        self.supported_architectures = self._architectures()
+        self.supported_architectures = self.snap_info.supported_architectures
 
         placeholder = _placeholder_pixels()
         self.icon_widget = Static(placeholder or "", id="snap-icon")
@@ -69,14 +70,28 @@ class SnapScreen(ModalScreen[None]):
         )
 
     # ------------------------------------------------------------------ helpers
-    def _architectures(self) -> list[str]:
-        return sorted(
-            {
-                item.channel.architecture
-                for item in self.snap_info.channel_map
-                if item.channel.architecture
-            }
+    def _unique_values(self, values: Iterable[str | None]) -> str:
+        unique = sorted({value for value in values if value})
+        return ", ".join(unique) or "Unknown"
+
+    def _base(self) -> str:
+        return self._unique_values(item.base for item in self.snap_info.channel_map)
+
+    def _type(self) -> str:
+        return self._unique_values(item.type for item in self.snap_info.channel_map)
+
+    def _confinement(self) -> str:
+        return self._unique_values(
+            item.confinement for item in self.snap_info.channel_map
         )
+
+    def _download(self) -> str:
+        sizes = [
+            item.download.size
+            for item in self.snap_info.channel_map
+            if item.download is not None
+        ]
+        return humanize.naturalsize(max(sizes)) if sizes else "Unknown"
 
     def _channels(self) -> list[ChannelMapItem]:
         return [item for item in self.snap_info.channel_map if item.channel]
@@ -111,6 +126,12 @@ class SnapScreen(ModalScreen[None]):
                 f"rev. {state.revision}" if state.revision is not None else "unknown"
             )
             message = f"Installed: ✅ ({version})"
+            if state.channel:
+                message += f" · {state.channel}"
+            if state.broken:
+                message += " · broken"
+            if state.hold is not None:
+                message += " · hold"
         self.installed_label.update(message)
 
     # ------------------------------------------------------------------ compose
@@ -142,6 +163,13 @@ class SnapScreen(ModalScreen[None]):
                             f"Supported: {supported} on {arch}", classes="details-item"
                         ),
                         Label(f"Archs: {architectures}", classes="details-item"),
+                        Label(f"Base: {self._base()}", classes="details-item"),
+                        Label(f"Type: {self._type()}", classes="details-item"),
+                        Label(
+                            f"Confinement: {self._confinement()}",
+                            classes="details-item",
+                        ),
+                        Label(f"Download: {self._download()}", classes="details-item"),
                         Label(
                             f"Last updated: {self._last_modified()}",
                             classes="details-item",

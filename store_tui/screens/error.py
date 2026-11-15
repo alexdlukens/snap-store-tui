@@ -10,6 +10,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, TextArea
 
+from store_tui.errors import snapd_error_hint
+
 
 def _safe_str(value: object) -> str:
     try:
@@ -19,14 +21,20 @@ def _safe_str(value: object) -> str:
 
 
 def format_error(error: BaseException | str | object) -> str:
-    """Render any error value as text, never raising."""
+    """Render any error value as text, never raising.
+
+    A known ``SnapdAPIError.kind`` is shown before the traceback so the user
+    sees the actionable explanation first.
+    """
     if isinstance(error, BaseException):
+        hint = snapd_error_hint(error)
         try:
-            return "".join(
+            trace = "".join(
                 traceback.format_exception(type(error), error, error.__traceback__)
             )
         except Exception:  # pragma: no cover - defensive
-            return f"{type(error).__name__}: {_safe_str(error)}"
+            trace = f"{type(error).__name__}: {_safe_str(error)}"
+        return f"{hint}\n\n{trace}" if hint else trace
     return _safe_str(error)
 
 

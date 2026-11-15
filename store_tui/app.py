@@ -13,30 +13,38 @@ from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.widgets import DataTable, Footer, Header, Label
 
-from store_tui.client import close_client
+from store_tui.client import client_available, close_client
+from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
+from store_tui.screens.installed import InstalledScreen
 from store_tui.screens.search import SearchScreen
 from store_tui.screens.snap import SnapScreen
-from store_tui.snapd import InstalledState, get_installed_state, list_installed
+from store_tui.search import (
+    SEARCH_FIELDS,
+    SearchRequest,
+    paginated_arch,
+    paginated_confinement,
+    rows_from_paginated_response,
+    rows_from_response,
+)
+from store_tui.snapd import InstalledState, get_installed_state
 from store_tui.widgets.results_table import (
     PositionCount,
     ResultRow,
     ResultsTable,
-    rows_from_search_response,
 )
 
 logger = logging.getLogger(__name__)
 
 FEATURED_CATEGORY = "featured"
-SEARCH_FIELDS = ["title", "store-url", "summary"]
+SEARCH_PAGE_SIZE = 100
 
 
 class BrowseMode(Enum):
     FEATURED = "Featured"
     CATEGORY = "Category"
     SEARCH = "Search"
-    INSTALLED = "Installed"
 
 
 class StoreApp(App):
@@ -44,7 +52,9 @@ class StoreApp(App):
         ("q", "quit", "Quit"),
         ("c", "choose_category", "Category"),
         ("s", "search_snaps", "Search"),
-        ("i", "list_installed_snaps", "Installed"),
+        ("i", "show_installed", "Installed"),
+        ("a", "show_activity", "Activity"),
+        ("m", "load_more", "More"),
     ]
     CSS_PATH = "styles/app.tcss"
 
@@ -56,6 +66,10 @@ class StoreApp(App):
         self.mode = BrowseMode.FEATURED
         self.category = FEATURED_CATEGORY
         self.search_query = ""
+        self.search_request: SearchRequest | None = None
+        self.search_page = 1
+        self._search_has_more = False
+        self._loading_more = False
         self.categories: list[str] = []
         self.snapd_available = False
         self._generation = 0
@@ -89,7 +103,16 @@ class StoreApp(App):
         if self.mode is BrowseMode.CATEGORY:
             return self.category.replace("-", " ").title()
         if self.mode is BrowseMode.SEARCH:
-            return f'Search: "{self.search_query}"'
+            request = self.search_request
+            if request is None:
+                return "Search"
+            query = request.query.strip()
+            filters = request.filters.summary()
+            if query and filters:
+                return f'Search: "{query}" ({filters})'
+            if query:
+                return f'Search: "{query}"'
+            return f"Search: {filters}" if filters else "Search"
         return self.mode.value
 
     def update_title(self) -> None:
@@ -108,16 +131,18 @@ class StoreApp(App):
             self.category = category
         if query is not None:
             self.search_query = query
+        if mode is not BrowseMode.SEARCH:
+            self._search_has_more = False
         self.update_title()
         return self._generation
 
     def _empty_message(self) -> str:
-        if self.mode is BrowseMode.INSTALLED:
-            return "No snaps installed"
         return "No results"
 
-    def _apply_rows(self, rows: list[ResultRow]) -> None:
-        count = self.results.set_rows(rows)
+    def _apply_rows(self, rows: list[ResultRow], *, append: bool = False) -> None:
+        count = (
+            self.results.append_rows(rows) if append else self.results.set_rows(rows)
+        )
         self.empty_state.update(self._empty_message())
         self.empty_state.display = count == 0
 
@@ -131,13 +156,7 @@ class StoreApp(App):
 
     # ------------------------------------------------------------------ startup
     async def _probe_snapd(self) -> bool:
-        try:
-            response = await self.client.ping()
-        except Exception:
-            self.snapd_available = False
-            return False
-        status = getattr(response, "status_code", None)
-        self.snapd_available = isinstance(status, int) and 200 <= status < 300
+        self.snapd_available = await client_available(self.client)
         return self.snapd_available
 
     async def _startup(self) -> None:
@@ -145,7 +164,7 @@ class StoreApp(App):
         self.results.loading = True
         categories, featured, _available = await asyncio.gather(
             self.client.store.get_categories(),
-            self.client.store.get_top_snaps_from_category(FEATURED_CATEGORY),
+            self.client.store.find(category=FEATURED_CATEGORY, fields=SEARCH_FIELDS),
             self._probe_snapd(),
             return_exceptions=True,
         )
@@ -170,7 +189,7 @@ class StoreApp(App):
             featured = None
 
         if generation == self._generation:
-            self._apply_rows(rows_from_search_response(featured))
+            self._apply_rows(rows_from_response(featured))
             self.results.loading = False
             if self.results.row_count:
                 self.results.focus()
@@ -197,7 +216,7 @@ class StoreApp(App):
             return
         if not isinstance(response, SearchResponse):
             response = None
-        self._apply_rows(rows_from_search_response(response))
+        self._apply_rows(rows_from_response(response))
 
     def action_choose_category(self) -> None:
         self.run_worker(self._choose_category(), group="browse", name="browse-category")
@@ -218,70 +237,127 @@ class StoreApp(App):
         generation = self._begin_browse(BrowseMode.CATEGORY, category=category)
         await self._load_rows(
             generation,
-            self.client.store.get_top_snaps_from_category(category),
+            self.client.store.find(category=category, fields=SEARCH_FIELDS),
             "Error - loading category",
         )
 
     def action_search_snaps(self) -> None:
-        self.run_worker(self._search_snaps(), group="browse", name="browse-search")
+        self.run_worker(
+            self._search_snaps(), group="search-dialog", name="search-dialog"
+        )
 
     async def _search_snaps(self) -> None:
-        value = await self.push_screen(SearchScreen(), wait_for_dismiss=True)
-        if value is None:
-            return
-        query = str(value).strip()
-        if not query:
-            return
-        generation = self._begin_browse(BrowseMode.SEARCH, query=query)
-        await self._load_rows(
-            generation,
-            self.client.store.find(query=query, fields=SEARCH_FIELDS),
-            "Error - searching snaps",
+        request = await self.push_screen(
+            SearchScreen(
+                self.categories,
+                initial=self.search_request,
+                on_change=self._preview_search,
+            ),
+            wait_for_dismiss=True,
         )
+        if not isinstance(request, SearchRequest) or request.is_empty:
+            return
+        # Live previews usually already applied this request. If the user hit
+        # Enter before the debounce fired, start it now.
+        self._preview_search(request)
 
-    def action_list_installed_snaps(self) -> None:
+    def _preview_search(self, request: SearchRequest) -> None:
+        """Apply a search request as the form changes, without dismissing it."""
+        if request.is_empty:
+            return
+        if self.mode is BrowseMode.SEARCH and request == self.search_request:
+            return
+
+        self.search_request = request
+        self.search_page = 1
+        self._search_has_more = False
+        generation = self._begin_browse(BrowseMode.SEARCH, query=request.query.strip())
         self.run_worker(
-            self._list_installed_snaps(), group="browse", name="browse-installed"
+            self._run_search(request, generation),
+            group="search-preview",
+            name="search-preview",
+            exclusive=True,
         )
 
-    async def _list_installed_snaps(self) -> None:
-        generation = self._begin_browse(BrowseMode.INSTALLED)
-        self.results.loading = True
-
-        available = await self._probe_snapd()
-        if generation != self._generation:
-            return
-        if not available:
-            self.results.loading = False
-            self._apply_rows([])
-            self.show_error(
-                ConnectionError(
-                    "Snapd API not available - is the snapd-control interface connected?"
+    async def _run_search(self, request: SearchRequest, generation: int) -> None:
+        if request.filters.advanced:
+            await self._load_rows(
+                generation,
+                self.client.store.find(
+                    query=request.query.strip() or None,
+                    fields=SEARCH_FIELDS,
+                    **request.filters.find_kwargs(),
                 ),
-                "Error - listing installed snaps",
+                "Error - searching snaps",
             )
             return
+        await self._load_paginated(generation, request=request, page=1)
 
+    async def _load_paginated(
+        self, generation: int, request: SearchRequest, *, page: int
+    ) -> None:
+        self.results.loading = True
         try:
-            installed_rows = await list_installed(self.client)
+            response = await self.client.store.get_snap_search_paginated(
+                q=request.query.strip(),
+                arch=paginated_arch(request.filters),
+                page=page,
+                limit=SEARCH_PAGE_SIZE,
+                confinement=paginated_confinement(request.filters),
+            )
         except Exception as error:
             if generation == self._generation:
-                self._apply_rows([])
-                self.show_error(error, "Error - listing installed snaps")
+                self.show_error(error, "Error - searching snaps")
             return
         finally:
             if generation == self._generation:
                 self.results.loading = False
-
         if generation != self._generation:
             return
-        self._apply_rows(
-            [ResultRow(name=row.name, summary=row.summary) for row in installed_rows]
+
+        rows = rows_from_paginated_response(response)
+        self.search_page = page
+        # PaginatedResponse.has_more assumes 0-based pages; this endpoint is
+        # 1-based, so compute the boundary from the total ourselves.
+        self._search_has_more = getattr(response, "total", 0) > page * SEARCH_PAGE_SIZE
+        self._apply_rows(rows, append=page > 1)
+        if self.results.row_count:
+            self.results.focus()
+
+    def action_load_more(self) -> None:
+        if (
+            self.mode is not BrowseMode.SEARCH
+            or not self._search_has_more
+            or self._loading_more
+        ):
+            return
+        self._loading_more = True
+        self.run_worker(
+            self._load_more(), group="search-more", name="search-more", exclusive=True
         )
+
+    async def _load_more(self) -> None:
+        try:
+            request = self.search_request
+            if request is None:
+                return
+            generation = self._generation
+            await self._load_paginated(
+                generation, request=request, page=self.search_page + 1
+            )
+        finally:
+            self._loading_more = False
+
+    # ------------------------------------------------------------------ management
+    def action_show_installed(self) -> None:
+        self.push_screen(InstalledScreen(client=self.client))
+
+    def action_show_activity(self) -> None:
+        self.push_screen(ActivityScreen(client=self.client))
 
     # ------------------------------------------------------------------ snap details
     async def _installed_state(self, snap_name: str) -> InstalledState:
-        if not self.snapd_available:
+        if not self.snapd_available and not await self._probe_snapd():
             return InstalledState(installed=False, error="snapd API not available")
         return await get_installed_state(self.client, snap_name)
 
