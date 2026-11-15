@@ -143,8 +143,8 @@ __all__ = [
     "ArchSearchItem",
     "SearchFilters",
     "SearchRequest",
-    "rows_from_paginated_response",
-    "rows_from_response",
     "paginated_arch",
     "paginated_confinement",
+    "rows_from_paginated_response",
+    "rows_from_response",
 ]

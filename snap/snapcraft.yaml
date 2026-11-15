@@ -1,6 +1,6 @@
 name: store-tui
 title: Snap Store TUI
-base: core24
+base: core26
 version: "0.2.0"
 summary: Navigate the Snap Store from the terminal
 description: |
@@ -28,7 +28,18 @@ build-snaps:
   - astral-uv/latest/stable
 
 parts:
+  # core26 ships no Python; stage the 3.14 runtime so the uv plugin's
+  # relocatable venv (which symlinks to /usr/bin/python3.14) resolves at runtime.
+  python-runtime:
+    plugin: nil
+    stage-packages:
+      - libpython3.14-minimal
+      - libpython3.14-stdlib
+      - python3-minimal
+      - python3.14-minimal
+      - python3.14-venv
   store_tui:
+    after: [python-runtime]
     plugin: uv
     source: .
 

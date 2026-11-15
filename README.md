@@ -58,7 +58,7 @@ running, but offer Cancel.
 
 - Linux with snapd running and the snapd socket available at
   `/run/snapd.socket` (installed/install/uninstall features)
-- Python 3.12 (from source)
+- Python 3.14 (from source)
 - [uv](https://docs.astral.sh/uv/) for source installs and the `make` targets
 - The published snap declares the `network`, `desktop`, `desktop-legacy`, and
   `snapd-control` plugs; `snapd-control` is what grants access to snapd.
