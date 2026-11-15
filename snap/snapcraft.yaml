@@ -24,16 +24,12 @@ source-code: https://github.com/alexdlukens/snap-store-tui
 grade: stable
 confinement: strict
 
+build-snaps:
+  - astral-uv/latest/stable
+
 parts:
-  poetry-deps:
-    plugin: nil
-    override-build: |
-      craftctl default
-      curl -sSL https://install.python-poetry.org | python3 -
-      pip install "poetry-plugin-export>=1.8" --break-system-packages
   store_tui:
-    plugin: poetry
-    after: [poetry-deps]
+    plugin: uv
     source: .
 
 apps:

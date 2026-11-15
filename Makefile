@@ -1,37 +1,41 @@
+UV := uv
 VENV := .venv
 PY := $(VENV)/bin/python
-RUFF := $(VENV)/bin/ruff
-PYTEST := $(VENV)/bin/pytest
-TEXTUAL := $(VENV)/bin/textual
 
-.PHONY: install run dev test lint fmt check build-snap clean
+.PHONY: install run dev test lint fmt check build build-snap lock clean
 
 install:
-	poetry install
+	$(UV) sync --locked
 
 run:
-	$(PY) -m store_tui
+	$(UV) run --locked store-tui
 
 # textual-dev re-executes with argv[0]="python", which breaks venv discovery under
 # uv-created venvs; -c delegates to execvpe with the real interpreter path.
 dev:
-	$(TEXTUAL) run --dev -c "$(PY) -m store_tui"
+	$(UV) run --locked textual run --dev -c "$(PY) -m store_tui"
 
 test:
-	$(PYTEST)
+	$(UV) run --locked pytest
 
 lint:
-	$(RUFF) check .
+	$(UV) run --locked ruff check .
 
 fmt:
-	$(RUFF) format .
+	$(UV) run --locked ruff format .
 
 check: lint
-	$(RUFF) format --check .
-	$(PYTEST)
+	$(UV) run --locked ruff format --check .
+	$(UV) run --locked pytest
+
+build:
+	$(UV) build
 
 build-snap:
 	snapcraft pack
+
+lock:
+	$(UV) lock
 
 clean:
 	rm -rf dist build .ruff_cache .pytest_cache .coverage htmlcov

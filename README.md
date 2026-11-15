@@ -56,6 +56,7 @@ running, but offer Cancel.
 - Linux with snapd running and the snapd socket available at
   `/run/snapd.socket` (installed/install/uninstall features)
 - Python 3.12 (from source)
+- [uv](https://docs.astral.sh/uv/) for source installs and the `make` targets
 - The published snap declares the `network`, `desktop`, `desktop-legacy`, and
   `snapd-control` plugs; `snapd-control` is what grants access to snapd.
 
@@ -88,8 +89,8 @@ From source:
 ```bash
 git clone https://github.com/alexdlukens/snap-store-tui
 cd snap-store-tui
-poetry install
-poetry run store-tui
+uv sync --locked
+uv run --locked store-tui
 ```
 
 ## Development
@@ -97,18 +98,21 @@ poetry run store-tui
 All targets run from the repository root against the local `.venv`:
 
 ```bash
-make install     # poetry install
+make install     # uv sync --locked
 make run         # run the TUI
 make dev         # run with the Textual dev console enabled
 make test        # pytest
 make lint        # ruff check
 make fmt         # ruff format
 make check       # lint + format check + tests
+make build       # build sdist and wheel
 make build-snap  # snapcraft pack
+make lock        # refresh uv.lock
 make clean       # remove build and cache artifacts
 ```
 
-Snap builds use the `poetry` plugin with `core24`.
+Snap builds use the `uv` plugin with `core24`; `astral-uv` is installed as a
+build snap and dependencies come from `uv.lock`.
 
 ## Project layout
 
@@ -130,6 +134,7 @@ store_tui/
   assets/        placeholder.png
 snap/            snapcraft packaging and desktop integration
 tests/           app/screen/foundation tests and fixtures (tests/data)
+uv.lock          resolved dependency lockfile (commit this)
 ```
 
 ## License
