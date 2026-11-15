@@ -17,7 +17,8 @@ Snap Store. Built with [Textual](https://github.com/textualize/textual/).
 - Install with separate track and risk pickers and a strict/classic/devmode/
   jailmode confinement choice
 - Manage installed snaps in a dedicated screen: refresh, remove, hold/unhold
-  refreshes, revert, disable/enable, and read service logs
+  refreshes, revert, disable/enable, and read service logs. Selecting a row opens
+  the same store page used by search results, with installed state preloaded
 - Watch snapd changes with live progress and cancel an operation
 - Inspect recent and in-progress snapd changes in the Activity screen
 - Open a snap's store page in the browser
@@ -36,15 +37,15 @@ gracefully when snapd is unavailable: the rest of the store view keeps working.
 | `i`       | Open the installed-snaps management screen                    |
 | `a`       | Open the snapd Activity screen                                |
 | `m`       | Load more search results (plain queries)                      |
-| `Enter`   | Open the selected snap or installed details                   |
+| `Enter`   | Open the selected snap's store page                           |
 | `Escape`  | Close the active screen                                       |
 | `↑` `↓`   | Move through lists and panes                                  |
 
 On the Install screen, `i` installs, updates, or switches to the selected
 channel, `r` reverts, `u` starts an uninstall, and Cancel aborts a running snapd
-change. On the Installed screen, `r` refreshes, `u` removes, `h` holds, `v`
-reverts, `d` disables/enables, and `l` shows logs. Destructive actions ask for
-confirmation first.
+change. On the Installed screen, `Enter` or a row click opens the snap's store
+page, `r` refreshes, `u` removes, `h` holds, `v` reverts, `d` disables/enables,
+and `l` shows logs. Destructive actions ask for confirmation first.
 
 The app-level bindings are inactive while a screen is open. Search and Category
 close with `Escape` only (`q` is consumed as input in Search). Snap/Install/Error

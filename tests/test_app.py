@@ -379,6 +379,127 @@ async def test_installed_binding_opens_management_screen(
         assert not app.screen.query_one("#installed-empty").display
 
 
+async def test_installed_row_opens_store_page(client: FakeClient, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "store_tui.screens.snap.get_platform_architecture", lambda: "amd64"
+    )
+    monkeypatch.setattr(
+        "store_tui.screens.install.get_platform_architecture", lambda: "amd64"
+    )
+    client.snaps.list_installed_snaps.return_value = installed_list(
+        [installed_snap("alpha", version="2.0.1")]
+    )
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        await pilot.press("i")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+
+        await pilot.click("#installed-table", offset=(2, 1))
+        assert await wait_until(pilot, lambda: isinstance(app.screen, SnapScreen))
+        screen = app.screen
+        assert screen.snap_name == "alpha"
+        assert (
+            client.store.retry_get_snap_info.await_args.kwargs["snap_name"] == "alpha"
+        )
+        # The installed row already carries the state; no extra snapd query.
+        client.snaps.get_installed_snap.assert_not_awaited()
+        labels = [str(label.renderable) for label in screen.query(".details-item")]
+        assert "Installed: ✅ (2.0.1) · latest/stable" in labels
+
+        await pilot.press("escape")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+        assert client.snaps.list_installed_snaps.await_count == 2
+
+        await pilot.press("enter")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, SnapScreen))
+        await pilot.press("escape")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+
+
+async def test_installed_layout_sizes_table_to_content(client: FakeClient) -> None:
+    client.snaps.list_installed_snaps.return_value = installed_list(
+        [
+            installed_snap("alpha", summary="Short"),
+            installed_snap(
+                "beta",
+                summary=(
+                    "A considerably longer summary that must not change the width "
+                    "of the details pane"
+                ),
+            ),
+        ]
+    )
+    app = make_app(client)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await settle(app, pilot)
+        await pilot.press("i")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+
+        screen = app.screen
+        table = screen.query_one("#installed-table", DataTable)
+        table_pane = screen.query_one("#installed-table-pane")
+        details_pane = screen.query_one("#installed-details-pane")
+        details = screen.query_one("#installed-details")
+
+        assert table_pane.size.width == table.virtual_size.width
+        assert table.max_scroll_x == 0
+        right_width = details_pane.size.width
+        details_width = details.size.width
+
+        await pilot.press("down")
+        await settle(app, pilot)
+        assert "considerably longer" in str(details.renderable)
+        assert details_pane.size.width == right_width
+        assert details.size.width == details_width
+        assert table.max_scroll_x == 0
+
+
+async def test_installed_row_shows_loading_while_fetching_store_page(
+    client: FakeClient, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        "store_tui.screens.snap.get_platform_architecture", lambda: "amd64"
+    )
+    monkeypatch.setattr(
+        "store_tui.screens.install.get_platform_architecture", lambda: "amd64"
+    )
+    started = asyncio.Event()
+    release = asyncio.Event()
+    info = client.store.retry_get_snap_info.return_value
+
+    async def fetch(**kwargs):
+        started.set()
+        await release.wait()
+        return info
+
+    client.store.retry_get_snap_info.side_effect = fetch
+    client.snaps.list_installed_snaps.return_value = installed_list(
+        [installed_snap("alpha")]
+    )
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        await pilot.press("i")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+        installed = app.screen
+
+        await pilot.press("enter")
+        assert await wait_until(pilot, started.is_set)
+        assert installed.loading is True
+
+        release.set()
+        assert await wait_until(pilot, lambda: isinstance(app.screen, SnapScreen))
+        await pilot.press("escape")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+        assert installed.loading is False
+
+
 async def test_activity_binding_opens_changes_screen(client: FakeClient) -> None:
     client.changes.list_changes.return_value = changes_list(
         [READY_CHANGE, change("2", summary="Auto refresh", kind="refresh-snap")]

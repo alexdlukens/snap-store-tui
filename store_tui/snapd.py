@@ -134,10 +134,8 @@ def row_from_installed(snap: InstalledSnap) -> InstalledSnapRow:
     )
 
 
-def state_from_installed(snap: InstalledSnap | None) -> InstalledState:
-    if snap is None:
-        return InstalledState(installed=False)
-    row = row_from_installed(snap)
+def state_from_row(row: InstalledSnapRow) -> InstalledState:
+    """Project the installed row back onto the lighter details state."""
     return InstalledState(
         installed=True,
         version=row.version,
@@ -155,6 +153,12 @@ def state_from_installed(snap: InstalledSnap | None) -> InstalledState:
         status=row.status,
         refresh_failures=row.refresh_failures,
     )
+
+
+def state_from_installed(snap: InstalledSnap | None) -> InstalledState:
+    if snap is None:
+        return InstalledState(installed=False)
+    return state_from_row(row_from_installed(snap))
 
 
 async def get_installed_state(client: Any, name: str) -> InstalledState:

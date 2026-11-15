@@ -20,7 +20,7 @@ from store_tui.changes import progress_of, watch_change
 from store_tui.screens.confirm import ConfirmScreen
 from store_tui.screens.hold import HoldScreen
 from store_tui.screens.logs import LogsScreen
-from store_tui.snapd import InstalledSnapRow, list_installed
+from store_tui.snapd import InstalledSnapRow, list_installed, state_from_row
 from store_tui.widgets.progress import ProgressBarWithMessage
 
 CHANGE_TIMEOUT = 300.0
@@ -107,6 +107,7 @@ class InstalledScreen(ModalScreen[None]):
     BINDINGS = [
         ("escape", "close", "Close"),
         ("q", "close", "Close"),
+        ("enter", "open_store_page", "Store page"),
         ("r", "refresh", "Refresh"),
         ("u", "remove", "Remove"),
         ("h", "hold", "Hold"),
@@ -125,8 +126,12 @@ class InstalledScreen(ModalScreen[None]):
         height: 1fr;
     }
 
+    #installed-table-pane {
+        width: auto;
+    }
+
     #installed-table {
-        width: 1fr;
+        width: auto;
         height: 1fr;
     }
 
@@ -137,8 +142,12 @@ class InstalledScreen(ModalScreen[None]):
         color: $text-muted;
     }
 
+    #installed-details-pane {
+        width: 1fr;
+    }
+
     #installed-details {
-        width: 42;
+        width: 1fr;
         height: 1fr;
         padding: 0 1;
         border-left: solid $primary;
@@ -284,6 +293,12 @@ class InstalledScreen(ModalScreen[None]):
         if row is not None:
             self._show_details(row)
 
+    @on(DataTable.RowSelected, "#installed-table")
+    def _row_selected(self, event: DataTable.RowSelected) -> None:
+        if event.data_table is not self.table:
+            return
+        self.action_open_store_page()
+
     # ------------------------------------------------------------------ helpers
     def _selected_row(self) -> InstalledSnapRow | None:
         if self.selected_name is not None:
@@ -329,6 +344,44 @@ class InstalledScreen(ModalScreen[None]):
             self._warn(IN_PROGRESS_MESSAGE)
             return
         self.dismiss(None)
+
+    def action_open_store_page(self) -> None:
+        if self._change_running:
+            self._warn(IN_PROGRESS_MESSAGE)
+            return
+        row = self._require_row("open")
+        if row is None:
+            return
+        self.run_worker(
+            self._open_store_page(row),
+            group="installed-store-page",
+            name="installed-store-page",
+            exclusive=True,
+        )
+
+    async def _open_store_page(self, row: InstalledSnapRow) -> None:
+        open_snap = getattr(self.app, "open_snap", None)
+        if not callable(open_snap):
+            self._warn("Store page is unavailable")
+            return
+        # The installed list stays on screen under the store page, so its
+        # result-table spinner is invisible; cover this screen instead.
+        self.loading = True
+        try:
+            # The installed row already holds the state the details page
+            # renders, so opening it does not need another snapd round-trip.
+            await open_snap(
+                row.name,
+                install_state=state_from_row(row),
+                wait_for_dismiss=True,
+            )
+            if self.is_mounted:
+                await self._load_rows()
+                if self.rows:
+                    self.table.focus()
+        finally:
+            if self.is_mounted:
+                self.loading = False
 
     def action_refresh(self) -> None:
         row = self._require_row("refresh")

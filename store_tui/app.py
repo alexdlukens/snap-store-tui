@@ -361,17 +361,28 @@ class StoreApp(App):
             return InstalledState(installed=False, error="snapd API not available")
         return await get_installed_state(self.client, snap_name)
 
-    async def open_snap(self, snap_name: str) -> None:
+    async def open_snap(
+        self,
+        snap_name: str,
+        *,
+        install_state: InstalledState | None = None,
+        wait_for_dismiss: bool = False,
+    ) -> None:
         if not snap_name:
             return
         self.results.loading = True
         try:
-            snap_info, install_state = await asyncio.gather(
-                self.client.store.retry_get_snap_info(
+            if install_state is None:
+                snap_info, install_state = await asyncio.gather(
+                    self.client.store.retry_get_snap_info(
+                        snap_name=snap_name, fields=VALID_SNAP_INFO_FIELDS
+                    ),
+                    self._installed_state(snap_name),
+                )
+            else:
+                snap_info = await self.client.store.retry_get_snap_info(
                     snap_name=snap_name, fields=VALID_SNAP_INFO_FIELDS
-                ),
-                self._installed_state(snap_name),
-            )
+                )
         except Exception as error:
             self.show_error(error, "Error - retrieving snap info")
             return
@@ -384,14 +395,16 @@ class StoreApp(App):
                 "Error - retrieving snap info",
             )
             return
-        self.push_screen(
-            SnapScreen(
-                snap_name=snap_name,
-                snap_info=snap_info,
-                install_state=install_state,
-                client=self.client,
-            )
+        screen = SnapScreen(
+            snap_name=snap_name,
+            snap_info=snap_info,
+            install_state=install_state,
+            client=self.client,
         )
+        if wait_for_dismiss:
+            await self.push_screen(screen, wait_for_dismiss=True)
+            return
+        self.push_screen(screen)
 
     @on(DataTable.RowSelected)
     def _row_selected(self, event: DataTable.RowSelected) -> None:
