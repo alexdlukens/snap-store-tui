@@ -1,0 +1,20 @@
+{
+  "channel-map": [],
+  "default-track": "latest",
+  "name": "arm-only",
+  "snap-id": "CH44S57duWYOAA8jPQ2rZsg6mRL5zZUu",
+  "snap": {
+    "name": "arm-only",
+    "title": "ARM only snap",
+    "summary": "A snap that is only published for arm64",
+    "description": "Test fixture with no channels for the host architecture.",
+    "license": "MIT",
+    "store-url": "https://snapcraft.io/arm-only",
+    "publisher": {
+      "display-name": "Test Publisher",
+      "id": "8BowliyePp27bAXZ6jvMrilu4YNchbVq",
+      "username": "test-publisher",
+      "validation": "unproven"
+    }
+  }
+}

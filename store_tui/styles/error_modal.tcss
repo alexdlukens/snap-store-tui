@@ -1,7 +1,0 @@
-.centered {
-    align-horizontal: center;
-}
-
-.button-height {
-    max-height: 3;
-}

@@ -2,20 +2,20 @@ repos:
   - repo: local
     hooks:
       - id: ruff-format
-        name: ruff-format
-        entry: './.venv/bin/ruff format'
-        language: script
+        name: ruff format
+        entry: uv run --locked ruff format
+        language: system
         types: [python]
         pass_filenames: true
-      - id: ruff-import-sort
-        name: ruff-import-sort
-        entry: './.venv/bin/ruff check --fix --select I --select F401'
-        language: script
+      - id: ruff-check
+        name: ruff check --fix
+        entry: uv run --locked ruff check --fix
+        language: system
         types: [python]
         pass_filenames: true
       - id: pytest
         name: pytest
-        entry: './.venv/bin/pytest tests/'
-        language: script
-        types: [python]
+        entry: uv run --locked pytest
+        language: system
         pass_filenames: false
+        always_run: true

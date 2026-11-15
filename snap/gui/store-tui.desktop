@@ -2,9 +2,8 @@
 Version=1.0
 Name=store-tui
 Comment=Navigate the Snap Store from the terminal
-Exec=store-tui %u
+Exec=store-tui
 Icon=${SNAP}/meta/gui/store-tui.png
 Terminal=true
 Type=Application
 Categories=Utility;Development;
-MimeType=x-scheme-handler/snap;

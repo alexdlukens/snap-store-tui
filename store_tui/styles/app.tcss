@@ -1,0 +1,423 @@
+/* Snap Store TUI - single application stylesheet. */
+
+/* ---------------------------------------------------------------- app shell */
+#footer {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+}
+
+#footer Footer {
+    dock: none;
+    width: 1fr;
+    height: 1;
+}
+
+Footer {
+    background: $panel;
+}
+
+#position-count {
+    width: 12;
+    padding-right: 1;
+    content-align: right middle;
+    color: $text-muted;
+}
+
+#results-table {
+    width: 1fr;
+    height: 1fr;
+}
+
+#store-body {
+    height: 1fr;
+}
+
+#results-pane {
+    width: 1fr;
+    height: 1fr;
+}
+
+#store-details-pane {
+    width: 40;
+    height: 1fr;
+    scrollbar-size-vertical: 1;
+}
+
+#store-preview {
+    width: 1fr;
+    height: auto;
+    padding: 0 1;
+    border-left: solid $primary;
+}
+
+#store-icon {
+    width: auto;
+    height: auto;
+    padding-bottom: 1;
+    dock: top;
+}
+
+#store-details {
+    width: 1fr;
+    height: auto;
+}
+
+#store-body.narrow {
+    layout: vertical;
+}
+
+#store-body.narrow #results-pane {
+    width: 1fr;
+    height: 1fr;
+}
+
+#store-body.narrow #store-details-pane {
+    width: 1fr;
+    height: auto;
+    max-height: 50%;
+    border-top: solid $primary;
+}
+
+#store-body.narrow #store-preview {
+    width: 1fr;
+    height: auto;
+    layout: horizontal;
+    border-left: none;
+}
+
+#store-body.narrow #store-icon {
+    dock: none;
+    padding: 0 0 0 1;
+}
+
+#empty-state {
+    width: 100%;
+    height: auto;
+    padding: 1 0;
+    text-align: center;
+    color: $text-muted;
+}
+
+/* ---------------------------------------------------------------- shared bits */
+.section-title {
+    text-style: bold;
+    color: $text-muted;
+    padding: 0 1;
+}
+
+.screen-title {
+    text-align: center;
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+/* ---------------------------------------------------------------- category picker */
+CategoryScreen #category-container {
+    width: 100%;
+    height: 1fr;
+    align: center middle;
+    padding: 2;
+}
+
+CategoryScreen #category-list {
+    width: 60%;
+    max-height: 80%;
+    border: round $border;
+    background: $panel;
+}
+
+/* ---------------------------------------------------------------- search */
+SearchScreen {
+    align-horizontal: center;
+}
+
+SearchScreen #search-container {
+    width: 60%;
+    height: auto;
+    margin-top: 2;
+    padding: 1 2;
+    border: round $border;
+    background: $panel;
+}
+
+/* ---------------------------------------------------------------- snap details */
+SnapScreen #snap-header {
+    height: auto;
+    padding: 0 1;
+}
+
+SnapScreen Footer {
+    height: 1;
+}
+
+.snap-title {
+    text-style: bold;
+    margin-right: 2;
+}
+
+.snap-publisher {
+    color: $text-muted;
+}
+
+.snap-summary {
+    padding: 0 1;
+    text-style: italic;
+    color: $text-muted;
+}
+
+#snap-scroll {
+    height: 1fr;
+    margin: 1;
+    padding: 1;
+    border: round $border;
+    background: $panel;
+    scrollbar-size-vertical: 1;
+}
+
+#snap-card {
+    height: auto;
+    padding: 0;
+    background: transparent;
+}
+
+.snap-description {
+    width: 1fr;
+    height: auto;
+    padding-right: 1;
+}
+
+.snap-description Markdown {
+    height: auto;
+    background: transparent;
+}
+
+.snap-details {
+    width: 40;
+    min-width: 28;
+    padding-left: 1;
+    border-left: round $border;
+}
+
+#snap-icon {
+    width: auto;
+    height: auto;
+    padding: 0 1 1 1;
+}
+
+.details-item {
+    padding: 0 1;
+    text-style: bold;
+}
+
+.link {
+    color: $primary;
+    text-style: underline;
+}
+
+.link:hover {
+    background: $accent;
+}
+
+/* ---------------------------------------------------------------- install */
+InstallScreen Footer {
+    height: 1;
+}
+
+#install-header {
+    height: auto;
+    padding: 0 1;
+}
+
+#install-title-row {
+    height: auto;
+}
+
+#install-title {
+    text-style: bold;
+    width: auto;
+}
+
+#install-badge {
+    width: 1fr;
+    height: auto;
+    padding-left: 2;
+    color: $text-muted;
+}
+
+#install-subtitle {
+    width: 1fr;
+    height: auto;
+    color: $text-muted;
+}
+
+#install-body {
+    height: 1fr;
+    padding: 0;
+}
+
+#install-tracks {
+    width: auto;
+}
+
+#install-risks {
+    width: 26;
+    min-width: 26;
+}
+
+#install-side {
+    width: 1fr;
+    min-width: 34;
+    padding-left: 1;
+    scrollbar-size-vertical: 1;
+}
+
+#track-list,
+#risk-list {
+    height: 1fr;
+    border: round $border;
+    background: $panel;
+}
+
+#release-details {
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+#install-unavailable {
+    width: 1fr;
+    padding: 1;
+    color: $text-muted;
+}
+
+#mode-list {
+    width: 1fr;
+    height: 4;
+    border: none;
+    background: transparent;
+    scrollbar-size-vertical: 0;
+}
+
+#mode-list ListItem {
+    height: 1;
+}
+
+#mode-hint {
+    width: 1fr;
+    height: auto;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+#install-actions {
+    height: auto;
+    padding: 0 1;
+    background: $panel;
+    border-top: solid $border;
+}
+
+#install-actions Button {
+    margin-right: 1;
+    margin-left: 1;
+}
+
+#install-progress {
+    height: auto;
+    padding: 0 1;
+}
+
+#install-status {
+    height: auto;
+    padding: 0 1;
+    color: $text-muted;
+}
+
+#install-progress > Horizontal {
+    height: 3;
+    align-vertical: middle;
+}
+
+#install-progress-bar {
+    width: 1fr;
+}
+
+#install-progress-bar Bar {
+    width: 1fr;
+}
+
+.progress-message {
+    width: auto;
+    padding-left: 1;
+    color: $text-muted;
+}
+
+/* ---------------------------------------------------------------- confirm */
+ConfirmScreen {
+    align: center middle;
+}
+
+#confirm-card {
+    width: 60%;
+    max-width: 70;
+    height: auto;
+    padding: 1 2;
+    border: round $border;
+    background: $panel;
+}
+
+#confirm-title {
+    text-style: bold;
+    padding-bottom: 1;
+}
+
+#confirm-message {
+    height: auto;
+    padding-bottom: 1;
+}
+
+#confirm-actions {
+    height: auto;
+    align-horizontal: right;
+}
+
+#confirm-actions Button {
+    margin-left: 1;
+}
+
+
+/* ---------------------------------------------------------------- error */
+ErrorScreen {
+    align: center middle;
+}
+
+#error-container {
+    width: 80%;
+    height: 80%;
+}
+
+#error-card {
+    width: 100%;
+    height: 100%;
+    padding: 1;
+    border: round $border;
+    background: $panel;
+}
+
+#error-title {
+    text-style: bold;
+    color: $error;
+    padding-bottom: 1;
+}
+
+#error-traceback {
+    height: 1fr;
+    background: $surface;
+}
+
+#error-actions {
+    height: auto;
+    align-horizontal: right;
+    padding-top: 1;
+}
