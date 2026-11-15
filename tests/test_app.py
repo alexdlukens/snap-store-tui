@@ -458,6 +458,35 @@ async def test_installed_layout_sizes_table_to_content(client: FakeClient) -> No
         assert table.max_scroll_x == 0
 
 
+async def test_installed_layout_stacks_when_too_narrow(client: FakeClient) -> None:
+    client.snaps.list_installed_snaps.return_value = installed_list(
+        [installed_snap("alpha"), installed_snap("beta")]
+    )
+    app = make_app(client)
+    async with app.run_test(size=(100, 30)) as pilot:
+        await settle(app, pilot)
+        await pilot.press("i")
+        assert await wait_until(pilot, lambda: isinstance(app.screen, InstalledScreen))
+        await settle(app, pilot)
+
+        screen = app.screen
+        body = screen.query_one("#installed-body")
+        assert not body.has_class("narrow")
+
+        await pilot.resize_terminal(70, 30)
+        await settle(app, pilot)
+        assert body.has_class("narrow")
+        table_pane = screen.query_one("#installed-table-pane")
+        details_pane = screen.query_one("#installed-details-pane")
+        assert details_pane.region.width == 70
+        assert details_pane.region.y > table_pane.region.y
+
+        await pilot.resize_terminal(100, 30)
+        await settle(app, pilot)
+        assert not body.has_class("narrow")
+        assert details_pane.region.x > table_pane.region.x
+
+
 async def test_installed_row_shows_loading_while_fetching_store_page(
     client: FakeClient, monkeypatch
 ) -> None:

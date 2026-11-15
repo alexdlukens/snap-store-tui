@@ -10,7 +10,8 @@ from functools import partial
 from typing import Any
 
 import humanize
-from textual import on
+from rich.cells import cell_len
+from textual import events, on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
@@ -27,6 +28,7 @@ CHANGE_TIMEOUT = 300.0
 IN_PROGRESS_MESSAGE = "Operation in progress — please wait"
 TABLE_COLUMNS = ("Name", "Version", "Channel", "Revision", "Status")
 HOLD_DURATIONS = {"1d": 1, "7d": 7, "30d": 30}
+MIN_DETAILS_WIDTH = 32
 
 
 def format_datetime(value: datetime | None) -> str:
@@ -154,6 +156,32 @@ class InstalledScreen(ModalScreen[None]):
         overflow-y: auto;
     }
 
+    #installed-body.narrow {
+        layout: vertical;
+    }
+
+    #installed-body.narrow #installed-table-pane {
+        width: 1fr;
+        height: 1fr;
+    }
+
+    #installed-body.narrow #installed-table {
+        width: 1fr;
+    }
+
+    #installed-body.narrow #installed-details-pane {
+        width: 1fr;
+        height: auto;
+        max-height: 50%;
+        border-top: solid $primary;
+    }
+
+    #installed-body.narrow #installed-details {
+        width: 1fr;
+        height: auto;
+        border-left: none;
+    }
+
     #installed-actions {
         height: auto;
         padding: 0 1;
@@ -225,12 +253,39 @@ class InstalledScreen(ModalScreen[None]):
     def on_mount(self) -> None:
         self.table.add_columns(*TABLE_COLUMNS)
         self.table.focus()
+        self._apply_layout()
         self.run_worker(
             self._load_rows(),
             group="installed-load",
             name="installed-load",
             exclusive=True,
         )
+
+    def on_resize(self, event: events.Resize) -> None:
+        self._apply_layout()
+
+    def _table_content_width(self) -> int:
+        widths = [cell_len(column) for column in TABLE_COLUMNS]
+        for row in self.rows:
+            cells = (
+                row.name,
+                row.version or "—",
+                row.channel or "—",
+                str(row.revision) if row.revision is not None else "—",
+                row.status or "—",
+            )
+            widths = [
+                max(width, cell_len(cell))
+                for width, cell in zip(widths, cells, strict=True)
+            ]
+        return sum(width + 2 * self.table.cell_padding for width in widths)
+
+    def _apply_layout(self) -> None:
+        """Stack the details below the table when side-by-side would hide it."""
+        if not self.is_mounted:
+            return
+        needed = self._table_content_width() + MIN_DETAILS_WIDTH
+        self.query_one("#installed-body").set_class(self.size.width < needed, "narrow")
 
     # ------------------------------------------------------------------ loading
     async def _load_rows(self) -> None:
@@ -269,6 +324,7 @@ class InstalledScreen(ModalScreen[None]):
         if not has_rows:
             self.selected_name = None
             self.details.update("")
+            self._apply_layout()
             return
 
         names = [row.name for row in self.rows]
@@ -276,6 +332,7 @@ class InstalledScreen(ModalScreen[None]):
         self.table.move_cursor(row=index, column=0)
         self.selected_name = names[index]
         self._show_details(self._rows_by_name[names[index]])
+        self._apply_layout()
 
     def _show_details(self, row: InstalledSnapRow) -> None:
         if self.is_mounted:
