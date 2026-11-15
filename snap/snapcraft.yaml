@@ -42,6 +42,17 @@ parts:
     after: [python-runtime]
     plugin: uv
     source: .
+    # The plugin relinks only bin/python3 to the staged interpreter. uv's
+    # relocatable venv also writes bin/python and bin/python3.14 as absolute
+    # links to /usr/bin/python3.14, which at runtime resolve into the
+    # Python-less core26 base rather than $SNAP. Repoint every alias into
+    # $SNAP, keeping the console-script shim's "#!/bin/sh exec .../python"
+    # working.
+    override-build: |
+      craftctl default
+      ln -sfn ../usr/bin/python3.14 "$CRAFT_PART_INSTALL/bin/python"
+      ln -sfn ../usr/bin/python3.14 "$CRAFT_PART_INSTALL/bin/python3"
+      ln -sfn python3 "$CRAFT_PART_INSTALL/bin/python3.14"
 
 apps:
   store-tui:
