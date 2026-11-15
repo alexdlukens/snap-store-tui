@@ -172,6 +172,7 @@ class FakeClient:
         self.store = SimpleNamespace(
             get_categories=AsyncMock(return_value=CATEGORIES),
             find=AsyncMock(return_value=FEATURED),
+            get_snap_info=AsyncMock(return_value=SNAP_INFO),
             retry_get_snap_info=AsyncMock(return_value=SNAP_INFO),
             get_snap_search_paginated=AsyncMock(
                 return_value=paginated([result.name for result in FEATURED.results])

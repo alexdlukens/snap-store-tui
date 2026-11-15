@@ -111,6 +111,7 @@ def test_rows_from_paginated_response_prefers_package_name() -> None:
         ("vlc", "Play media", "3.0.20"),
         ("Firefox", "Browse the web", "128.0"),
     ]
+    assert [row.title for row in rows] == ["VLC media player", "Firefox"]
     assert rows_from_paginated_response(None) == []
 
 
@@ -121,7 +122,20 @@ def test_rows_from_response_includes_revision_version() -> None:
                 {
                     "name": "vlc",
                     "snap-id": "abcdef",
-                    "snap": {"name": "vlc", "summary": "Play media"},
+                    "snap": {
+                        "name": "vlc",
+                        "summary": "Play media",
+                        "media": [
+                            {
+                                "type": "screenshot",
+                                "url": "https://example.test/vlc-screen.png",
+                            },
+                            {
+                                "type": "icon",
+                                "url": "https://example.test/vlc.png",
+                            },
+                        ],
+                    },
                     "revision": {
                         "revision": 3078,
                         "version": "3.0.20",
@@ -136,4 +150,8 @@ def test_rows_from_response_includes_revision_version() -> None:
     assert [(row.name, row.summary, row.version) for row in rows] == [
         ("vlc", "Play media", "3.0.20")
     ]
+    assert rows[0].revision == 3078
+    assert rows[0].channel == "stable"
+    assert rows[0].confinement == "strict"
+    assert rows[0].icon_url == "https://example.test/vlc.png"
     assert rows_from_response(None) == []

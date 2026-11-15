@@ -25,7 +25,70 @@ Footer {
 }
 
 #results-table {
+    width: 1fr;
     height: 1fr;
+}
+
+#store-body {
+    height: 1fr;
+}
+
+#results-pane {
+    width: 1fr;
+    height: 1fr;
+}
+
+#store-details-pane {
+    width: 40;
+    height: 1fr;
+    scrollbar-size-vertical: 1;
+}
+
+#store-preview {
+    width: 1fr;
+    height: auto;
+    padding: 0 1;
+    border-left: solid $primary;
+}
+
+#store-icon {
+    width: auto;
+    height: auto;
+    padding-bottom: 1;
+    dock: top;
+}
+
+#store-details {
+    width: 1fr;
+    height: auto;
+}
+
+#store-body.narrow {
+    layout: vertical;
+}
+
+#store-body.narrow #results-pane {
+    width: 1fr;
+    height: 1fr;
+}
+
+#store-body.narrow #store-details-pane {
+    width: 1fr;
+    height: auto;
+    max-height: 50%;
+    border-top: solid $primary;
+}
+
+#store-body.narrow #store-preview {
+    width: 1fr;
+    height: auto;
+    layout: horizontal;
+    border-left: none;
+}
+
+#store-body.narrow #store-icon {
+    dock: none;
+    padding: 0 0 0 1;
 }
 
 #empty-state {

@@ -21,6 +21,7 @@ SEARCH_FIELDS = [
     "confinement",
     "publisher",
     "revision",
+    "media",
 ]
 
 
@@ -120,6 +121,7 @@ def rows_from_paginated_response(
                 name=name,
                 summary=item.summary or "",
                 version=item.version or "",
+                title=item.title or "",
             )
         )
     return rows

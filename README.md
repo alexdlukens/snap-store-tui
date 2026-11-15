@@ -7,7 +7,9 @@ Snap Store. Built with [Textual](https://github.com/textualize/textual/).
 
 ## Features
 
-- Browse featured snaps and categories
+- Browse featured snaps and categories, with a live preview of the highlighted
+  snap — icon, summary, and release metadata — beside the results, or below
+  them when the terminal is narrow
 - Search with store filters: confinement, category, publisher, architecture,
   channel, name prefix, and featured-only. Results update live as the form
   changes, the last query/filters are restored when you reopen the form, and

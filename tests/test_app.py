@@ -9,10 +9,16 @@ import sys
 from unittest.mock import AsyncMock
 
 import pytest
+from rich_pixels import Pixels
 from snap_python.utils import SnapdAPIError
 from textual.widgets import Checkbox, DataTable, Input, Label, OptionList, Select
 
-from store_tui.app import BrowseMode, StoreApp
+from store_tui.app import (
+    PREVIEW_ICON_PATH,
+    BrowseMode,
+    StoreApp,
+    format_preview,
+)
 from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
@@ -24,12 +30,14 @@ from tests.support import (
     CATEGORIES,
     FEATURED,
     READY_CHANGE,
+    SNAP_INFO,
     FakeClient,
     change,
     changes_list,
     installed_list,
     installed_snap,
     paginated,
+    with_snap_info,
 )
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent
@@ -81,6 +89,168 @@ async def test_startup_renders_featured_rows_and_title(client: FakeClient) -> No
         assert app.title == "store-tui - Featured"
         assert str(app.position_count.renderable) == "1/16"
         assert app.snapd_available is True
+
+
+def test_format_preview_includes_store_metadata() -> None:
+    text = format_preview(
+        ResultRow(
+            name="vlc",
+            title="VLC media player",
+            publisher="VideoLAN",
+            summary="The ultimate media player",
+            version="3.0.20",
+            revision=3078,
+            channel="stable",
+            confinement="strict",
+            base="core22",
+            type="app",
+            store_url="https://snapcraft.io/vlc",
+        )
+    )
+    plain = text.plain
+    assert "VLC media player  (vlc)" in plain
+    assert "VideoLAN" in plain
+    assert "Version: 3.0.20" in plain
+    assert "Revision: 3078" in plain
+    assert "Channel: stable" in plain
+    assert "Confinement: strict" in plain
+    assert "Base: core22" in plain
+    assert "Type: app" in plain
+    assert "Enter for full details" in plain
+
+
+async def test_startup_preview_updates_with_highlight(client: FakeClient) -> None:
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+
+        preview = app.details.renderable
+        assert "Vivaldi" in preview.plain
+        assert "A Powerful. Personal. Private." in preview.plain
+        assert "https://snapcraft.io/vivaldi" in preview.plain
+
+        await pilot.press("down")
+        await pilot.pause()
+        assert "opentofu" in app.details.renderable.plain
+
+
+async def test_main_table_wraps_long_descriptions(client: FakeClient) -> None:
+    app = make_app(client)
+    async with app.run_test(size=(120, 30)) as pilot:
+        await settle(app, pilot)
+
+        table = app.results
+        assert table.max_scroll_x == 0
+        heights = {row.key.value: row.height for row in table.ordered_rows}
+        assert heights["kstars"] >= 2
+        row = table.get_row("kstars")
+        assert "desktop planetarium for amateur and professional astronomers" in str(
+            row[2]
+        )
+
+
+async def test_main_preview_stacks_when_too_narrow(client: FakeClient) -> None:
+    app = make_app(client)
+    async with app.run_test(size=(120, 30)) as pilot:
+        await settle(app, pilot)
+
+        body = app.query_one("#store-body")
+        results_pane = app.query_one("#results-pane")
+        details_pane = app.query_one("#store-details-pane")
+        icon = app.query_one("#store-icon")
+        details = app.query_one("#store-details")
+        assert not body.has_class("narrow")
+        assert app.results.max_scroll_x == 0
+        assert icon.region.y < details.region.y
+
+        await pilot.resize_terminal(90, 30)
+        await settle(app, pilot)
+        assert body.has_class("narrow")
+        assert details_pane.region.width == 90
+        assert details_pane.region.y > results_pane.region.y
+        assert icon.region.x > details.region.x
+
+        await pilot.resize_terminal(120, 30)
+        await settle(app, pilot)
+        assert not body.has_class("narrow")
+        assert details_pane.region.x > results_pane.region.x
+        assert icon.region.y < details.region.y
+
+
+async def test_preview_prefetches_icons_in_batches_of_ten(
+    client: FakeClient, monkeypatch
+) -> None:
+    icon = Pixels.from_image_path(PREVIEW_ICON_PATH, resize=(4, 4))
+    gate = asyncio.Event()
+    requested: list[str] = []
+    active = 0
+
+    async def fake_fetch(self, url: str) -> Pixels | None:
+        nonlocal active
+        requested.append(url)
+        active += 1
+        try:
+            await gate.wait()
+        finally:
+            active -= 1
+        return icon
+
+    monkeypatch.setattr(StoreApp, "_fetch_preview_icon", fake_fetch)
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        rows = [
+            ResultRow(
+                name=f"snap{index}",
+                title=f"Snap {index}",
+                icon_url=f"https://icons.test/{index}.png",
+            )
+            for index in range(15)
+        ]
+        app._apply_rows(rows)
+
+        assert await wait_until(pilot, lambda: len(requested) == 10)
+        assert active == 10
+
+        app.results.move_cursor(row=14)
+        await pilot.pause()
+        assert len(requested) == 10
+        assert active == 10
+
+        gate.set()
+        assert await wait_until(pilot, lambda: "https://icons.test/14.png" in requested)
+        assert await wait_until(
+            pilot,
+            lambda: app._icon_cache.get("https://icons.test/14.png") is icon,
+        )
+        await pilot.pause()
+        assert app.icon.renderable is icon
+
+
+async def test_preview_resolves_icon_without_search_media(
+    client: FakeClient, monkeypatch
+) -> None:
+    icon = Pixels.from_image_path(PREVIEW_ICON_PATH, resize=(4, 4))
+    url = "https://icons.test/alpha.png"
+
+    async def fake_fetch(self, icon_url: str) -> Pixels | None:
+        assert icon_url == url
+        return icon
+
+    monkeypatch.setattr(StoreApp, "_fetch_preview_icon", fake_fetch)
+    client.store.get_snap_info.return_value = with_snap_info(
+        SNAP_INFO,
+        snap={"name": "alpha", "media": [{"type": "icon", "url": url}]},
+    )
+    app = make_app(client)
+    async with app.run_test(size=TERMINAL_SIZE) as pilot:
+        await settle(app, pilot)
+        app._apply_rows([ResultRow(name="alpha", title="Alpha")])
+
+        assert await wait_until(pilot, lambda: app._icon_cache.get(url) is icon)
+        await pilot.pause()
+        assert app.icon.renderable is icon
+        assert client.store.get_snap_info.await_args.kwargs["fields"] == ["media"]
 
 
 async def test_category_selection_updates_rows_and_title(client: FakeClient) -> None:

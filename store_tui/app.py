@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import logging
 from enum import Enum
+from pathlib import Path
 
+import httpx
+from PIL import Image
+from rich.text import Text
+from rich_pixels import Pixels
 from snap_python.schemas.store.info import VALID_SNAP_INFO_FIELDS
 from snap_python.schemas.store.search import SearchResponse
-from textual import on
+from textual import events, on
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal
-from textual.widgets import DataTable, Footer, Header, Label
+from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.widgets import DataTable, Footer, Header, Label, Static
 
 from store_tui.client import client_available, close_client
 from store_tui.screens.activity import ActivityScreen
@@ -39,6 +45,51 @@ logger = logging.getLogger(__name__)
 
 FEATURED_CATEGORY = "featured"
 SEARCH_PAGE_SIZE = 100
+MIN_PREVIEW_WIDTH = 40
+TABLE_SCROLLBAR_ALLOWANCE = 2
+PREVIEW_ICON_SIZE = (12, 12)
+MAX_ICON_FETCHES = 10
+PREVIEW_ICON_PATH = Path(__file__).resolve().parent / "assets" / "placeholder.png"
+
+
+def _placeholder_pixels() -> Pixels | None:
+    try:
+        return Pixels.from_image_path(PREVIEW_ICON_PATH, resize=PREVIEW_ICON_SIZE)
+    except Exception:
+        return None
+
+
+def format_preview(row: ResultRow) -> Text:
+    """Render the selected result without fetching the full store page."""
+    text = Text()
+    text.append(row.title or row.name, style="bold")
+    if row.title and row.title != row.name:
+        text.append(f"  ({row.name})", style="dim")
+    text.append("\n")
+    if row.publisher:
+        text.append(row.publisher, style="dim")
+        text.append("\n")
+    text.append("\n")
+    text.append(row.summary or "No summary provided.", style="italic")
+    text.append("\n\n")
+    for label, value in (
+        ("Version", row.version),
+        ("Revision", row.revision),
+        ("Channel", row.channel),
+        ("Confinement", row.confinement),
+        ("Base", row.base),
+        ("Type", row.type),
+    ):
+        if value not in (None, ""):
+            text.append(f"{label}: ", style="bold")
+            text.append(str(value))
+            text.append("\n")
+    if row.store_url:
+        text.append("\n")
+        text.append(row.store_url, style="dim")
+    text.append("\n")
+    text.append("Enter for full details", style="dim")
+    return text
 
 
 class BrowseMode(Enum):
@@ -78,24 +129,145 @@ class StoreApp(App):
         self.results = ResultsTable(self.position_count, id="results-table")
         self.empty_state = Label("", id="empty-state")
         self.empty_state.display = False
+        self._placeholder_icon = _placeholder_pixels()
+        self.icon = Static(self._placeholder_icon or "", id="store-icon")
+        self.icon.can_focus = False
+        self.icon.styles.width = PREVIEW_ICON_SIZE[0]
+        self.details = Static("", id="store-details")
+        self.details.can_focus = False
+        self._icon_cache: dict[str, Pixels | None] = {}
+        self._icon_urls: dict[str, str | None] = {}
+        self._icon_pending: set[str] = set()
+        self._icon_tasks: set[asyncio.Task] = set()
+        self._icon_semaphore = asyncio.Semaphore(MAX_ICON_FETCHES)
+        self.store_body = Horizontal(id="store-body")
         self.update_title()
 
     # ------------------------------------------------------------------ compose
     def compose(self) -> ComposeResult:
         yield Header()
-        yield self.results
-        yield self.empty_state
+        with self.store_body:
+            with Vertical(id="results-pane"):
+                yield self.results
+                yield self.empty_state
+            with VerticalScroll(id="store-details-pane"), Vertical(id="store-preview"):
+                yield self.details
+                yield self.icon
         with Horizontal(id="footer"):
             yield Footer(show_command_palette=False)
             yield self.position_count
 
     async def on_mount(self) -> None:
+        self._apply_layout()
         self.results.loading = True
         self.run_worker(
             self._startup(), group="startup", name="startup", exclusive=True
         )
 
+    def on_resize(self, event: events.Resize) -> None:
+        self._apply_layout()
+
+    def _apply_layout(self) -> None:
+        """Stack the preview below the results when side-by-side is too tight."""
+        if not self.is_mounted:
+            return
+        minimum = self.results.min_content_width()
+        narrow = (
+            self.size.width < minimum + MIN_PREVIEW_WIDTH + TABLE_SCROLLBAR_ALLOWANCE
+        )
+        left_width = self.size.width if narrow else self.size.width - MIN_PREVIEW_WIDTH
+        self.results.set_summary_width(
+            self.results.summary_width_for(
+                max(0, left_width - TABLE_SCROLLBAR_ALLOWANCE)
+            )
+        )
+        self.store_body.set_class(narrow, "narrow")
+
+    def _refresh_preview(self) -> None:
+        if not self.is_mounted:
+            return
+        row = self.results.current_row()
+        self.details.update(format_preview(row) if row is not None else Text(""))
+        self._show_preview_icon(row)
+        if row is not None:
+            self._request_icon(row)
+
+    def _row_icon_url(self, row: ResultRow | None) -> str | None:
+        if row is None:
+            return None
+        return row.icon_url or self._icon_urls.get(row.name)
+
+    def _show_preview_icon(self, row: ResultRow | None) -> None:
+        url = self._row_icon_url(row)
+        self.icon.update(self._icon_cache.get(url) or self._placeholder_icon or "")
+
+    def _prefetch_icons(self, rows: list[ResultRow]) -> None:
+        for row in rows[:MAX_ICON_FETCHES]:
+            self._request_icon(row)
+
+    def _request_icon(self, row: ResultRow) -> None:
+        if not row.name or row.name in self._icon_pending:
+            return
+        if row.name in self._icon_urls and self._icon_urls[row.name] is None:
+            return
+        url = row.icon_url or self._icon_urls.get(row.name)
+        if url is not None and url in self._icon_cache:
+            return
+        self._icon_pending.add(row.name)
+        task = asyncio.create_task(self._load_row_icon(row))
+        self._icon_tasks.add(task)
+        task.add_done_callback(self._icon_tasks.discard)
+
+    async def _load_row_icon(self, row: ResultRow) -> None:
+        try:
+            async with self._icon_semaphore:
+                url = row.icon_url or self._icon_urls.get(row.name)
+                if url is None:
+                    url = await self._resolve_icon_url(row.name)
+                self._icon_urls[row.name] = url
+                if url is not None and url not in self._icon_cache:
+                    self._icon_cache[url] = await self._fetch_preview_icon(url)
+        finally:
+            self._icon_pending.discard(row.name)
+        if self.is_mounted:
+            self.call_later(self._notify_icon_loaded, row.name)
+
+    async def _resolve_icon_url(self, name: str) -> str | None:
+        try:
+            info = await self.client.store.get_snap_info(
+                snap_name=name, fields=["media"]
+            )
+        except Exception:
+            return None
+        snap = getattr(info, "snap", None)
+        for item in (getattr(snap, "media", None) or []) if snap else []:
+            if item.type == "icon":
+                return str(item.url)
+        return None
+
+    def _notify_icon_loaded(self, name: str) -> None:
+        if not self.is_mounted:
+            return
+        row = self.results.current_row()
+        if row is not None and row.name == name:
+            self._show_preview_icon(row)
+
+    async def _fetch_preview_icon(self, url: str) -> Pixels | None:
+        try:
+            async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as http:
+                response = await http.get(url)
+                response.raise_for_status()
+            with Image.open(io.BytesIO(response.content)) as image:
+                return Pixels.from_image(image, resize=PREVIEW_ICON_SIZE)
+        except Exception:
+            return None
+
     async def on_unmount(self) -> None:
+        tasks = tuple(self._icon_tasks)
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
         await close_client(self.client)
 
     # ------------------------------------------------------------------ state
@@ -145,6 +317,9 @@ class StoreApp(App):
         )
         self.empty_state.update(self._empty_message())
         self.empty_state.display = count == 0
+        self._prefetch_icons(rows)
+        self._refresh_preview()
+        self._apply_layout()
 
     def show_error(self, error: BaseException | str | object, title: str) -> None:
         """Surface an error, updating an existing error screen if one is open."""
@@ -405,6 +580,12 @@ class StoreApp(App):
             await self.push_screen(screen, wait_for_dismiss=True)
             return
         self.push_screen(screen)
+
+    @on(DataTable.RowHighlighted, "#results-table")
+    def _preview_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.data_table is not self.results:
+            return
+        self._refresh_preview()
 
     @on(DataTable.RowSelected)
     def _row_selected(self, event: DataTable.RowSelected) -> None:
