@@ -117,6 +117,11 @@ make clean       # remove build and cache artifacts
 Snap builds use the `uv` plugin with `core24`; `astral-uv` is installed as a
 build snap and dependencies come from `uv.lock`.
 
+Publishing a GitHub release builds the wheel with `uv build --wheel` and
+attaches it to that release (`.github/workflows/release.yml`). Run the workflow
+manually with a tag input to re-attach a wheel to an existing release; the tag
+must match the `version` in `pyproject.toml`.
+
 ## Project layout
 
 ```text

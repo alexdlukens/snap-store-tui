@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to attach the wheel to (for example v0.2.0)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  wheel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14"
+          enable-cache: true
+      - name: Verify tag matches pyproject version
+        run: |
+          version="$(uv version --short)"
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::ref $TAG does not match pyproject version $version"
+            exit 1
+          fi
+      - name: Build wheel
+        run: uv build --wheel --out-dir dist
+      - name: Verify wheel installs
+        run: |
+          uv venv --python 3.14 /tmp/wheel-check
+          uv pip install --python /tmp/wheel-check/bin/python dist/*.whl
+          /tmp/wheel-check/bin/store-tui --help
+      - name: Upload wheel to release
+        run: gh release upload "$TAG" dist/*.whl --clobber
