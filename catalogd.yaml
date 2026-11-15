@@ -148,6 +148,8 @@ project:
     MIT — see [LICENSE](LICENSE).
 
   author: Alexander Lukens
+  type: cli-application
+  language: Python
   homepage: https://github.com/alexdlukens/snap-store-tui
   repository: https://github.com/alexdlukens/snap-store-tui
   keywords:
