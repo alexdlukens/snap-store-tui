@@ -43,3 +43,21 @@ jobs:
           /tmp/wheel-check/bin/store-tui --help
       - name: Upload wheel to release
         run: gh release upload "$TAG" dist/*.whl --clobber
+
+  snap:
+    # needs wheel so a tag/pyproject version mismatch fails before the snap,
+    # whose version is adopted from pyproject.toml, is uploaded
+    needs: wheel
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: snapcore/action-build@v1
+        id: snapcraft
+      - name: Upload snap to release
+        run: gh release upload "$TAG" "${{ steps.snapcraft.outputs.snap }}" --clobber

@@ -120,10 +120,12 @@ from `pyproject.toml` (`adopt-info` plus `uv version --short` in the part's
 `override-pull`), so the project version is the only place the release number
 is set.
 
-Publishing a GitHub release builds the wheel with `uv build --wheel` and
-attaches it to that release (`.github/workflows/release.yml`). Run the workflow
-manually with a tag input to re-attach a wheel to an existing release; the tag
-must match the `version` in `pyproject.toml`.
+Publishing a GitHub release builds and attaches two assets
+(`.github/workflows/release.yml`): the wheel (`uv build --wheel`) and the
+`amd64` snap (`snapcraft`, via `snapcore/action-build`). The snap job runs only
+after the wheel job verifies the tag matches the `version` in
+`pyproject.toml`, which the snap adopts as its version. Run the workflow
+manually with a tag input to re-attach both assets to an existing release.
 
 ## Project layout
 
