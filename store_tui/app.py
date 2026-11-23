@@ -17,7 +17,12 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import DataTable, Footer, Header, Label, Static
 
 from store_tui.client import client_available, close_client
-from store_tui.icons import IconCache
+from store_tui.icons import (
+    IconCache,
+    fit_icon_cells,
+    padding_cells,
+    pixels_for_cells,
+)
 from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
@@ -45,14 +50,14 @@ FEATURED_CATEGORY = "featured"
 SEARCH_PAGE_SIZE = 100
 MIN_PREVIEW_WIDTH = 40
 TABLE_SCROLLBAR_ALLOWANCE = 2
-PREVIEW_ICON_SIZE = (12, 12)
+FALLBACK_PREVIEW_CELLS = (12, 6)
 MAX_ICON_FETCHES = 10
 PREVIEW_ICON_PATH = Path(__file__).resolve().parent / "assets" / "placeholder.png"
 
 
-def _placeholder_pixels() -> Pixels | None:
+def _placeholder_pixels(size: tuple[int, int]) -> Pixels | None:
     try:
-        return Pixels.from_image_path(PREVIEW_ICON_PATH, resize=PREVIEW_ICON_SIZE)
+        return Pixels.from_image_path(PREVIEW_ICON_PATH, resize=size)
     except Exception:
         return None
 
@@ -88,6 +93,21 @@ def format_preview(row: ResultRow) -> Text:
     text.append("\n")
     text.append("Enter for full details", style="dim")
     return text
+
+
+class _PreviewSizeMixin:
+    """Report layout size changes so the preview icon can re-fit."""
+
+    def on_resize(self, event: events.Resize) -> None:
+        self.app._resize_preview()
+
+
+class PreviewPane(_PreviewSizeMixin, Vertical):
+    pass
+
+
+class DetailsPane(_PreviewSizeMixin, VerticalScroll):
+    pass
 
 
 class BrowseMode(Enum):
@@ -127,12 +147,19 @@ class StoreApp(App):
         self.results = ResultsTable(self.position_count, id="results-table")
         self.empty_state = Label("", id="empty-state")
         self.empty_state.display = False
-        self._placeholder_icon = _placeholder_pixels()
+        self._preview_cells = FALLBACK_PREVIEW_CELLS
+        self._preview_outer = FALLBACK_PREVIEW_CELLS
+        self._placeholder_icon = _placeholder_pixels(
+            pixels_for_cells(FALLBACK_PREVIEW_CELLS)
+        )
         self.icon = Static(self._placeholder_icon or "", id="store-icon")
         self.icon.can_focus = False
-        self.icon.styles.width = PREVIEW_ICON_SIZE[0]
+        self.icon.styles.width = FALLBACK_PREVIEW_CELLS[0]
+        self.icon.styles.height = FALLBACK_PREVIEW_CELLS[1]
         self.details = Static("", id="store-details")
         self.details.can_focus = False
+        self.details_pane = DetailsPane(id="store-details-pane")
+        self.preview_pane = PreviewPane(id="store-preview")
         self._icon_urls: dict[str, str | None] = {}
         self._icon_pending: set[str] = set()
         self._icon_tasks: set[asyncio.Task] = set()
@@ -149,7 +176,7 @@ class StoreApp(App):
             with Vertical(id="results-pane"):
                 yield self.results
                 yield self.empty_state
-            with VerticalScroll(id="store-details-pane"), Vertical(id="store-preview"):
+            with self.details_pane, self.preview_pane:
                 yield self.details
                 yield self.icon
         with Horizontal(id="footer"):
@@ -158,6 +185,7 @@ class StoreApp(App):
 
     async def on_mount(self) -> None:
         self._apply_layout()
+        self.call_after_refresh(self._resize_preview)
         self.results.loading = True
         self.run_worker(
             self._startup(), group="startup", name="startup", exclusive=True
@@ -201,10 +229,36 @@ class StoreApp(App):
             return None
         return row.icon_url or self._icon_urls.get(row.name)
 
+    def _resize_preview(self) -> None:
+        """Re-fit the preview icon after the layout settled on a new area."""
+        if not self.is_mounted:
+            return
+        self._show_preview_icon(self.results.current_row())
+
+    def _update_preview_icon_size(self, row: ResultRow | None) -> None:
+        horizontal, vertical = padding_cells(self.icon)
+        available_width = self.preview_pane.content_size.width - horizontal
+        available_height = self.details_pane.content_size.height - vertical
+        if available_width <= 0 or available_height <= 0:
+            return
+        url = self._row_icon_url(row)
+        aspect = self.icons.aspect(url) if url is not None else None
+        cells = fit_icon_cells(available_width, available_height, aspect)
+        outer = (cells[0] + horizontal, cells[1] + vertical)
+        if cells == self._preview_cells and outer == self._preview_outer:
+            return
+        if cells != self._preview_cells:
+            self._preview_cells = cells
+            self._placeholder_icon = _placeholder_pixels(pixels_for_cells(cells))
+        self._preview_outer = outer
+        self.icon.styles.width = outer[0]
+        self.icon.styles.height = outer[1]
+
     def _show_preview_icon(self, row: ResultRow | None) -> None:
+        self._update_preview_icon_size(row)
         url = self._row_icon_url(row)
         pixels = (
-            self.icons.cached_pixels(url, PREVIEW_ICON_SIZE)
+            self.icons.render_cached(url, pixels_for_cells(self._preview_cells))
             if url is not None
             else None
         )
@@ -213,10 +267,8 @@ class StoreApp(App):
     def _icon_ready(self, row: ResultRow) -> bool:
         if row.name in self._icon_urls:
             url = self._icon_urls[row.name]
-            return url is None or self.icons.has_pixels(url, PREVIEW_ICON_SIZE)
-        return row.icon_url is not None and self.icons.has_pixels(
-            row.icon_url, PREVIEW_ICON_SIZE
-        )
+            return url is None or self.icons.has_bytes(url)
+        return row.icon_url is not None and self.icons.has_bytes(row.icon_url)
 
     def _prefetch_batch(self, start: int) -> None:
         """Prefetch up to ten rows starting at ``start``."""
@@ -235,7 +287,7 @@ class StoreApp(App):
         if row.name in self._icon_urls and self._icon_urls[row.name] is None:
             return
         url = row.icon_url or self._icon_urls.get(row.name)
-        if url is not None and self.icons.has_pixels(url, PREVIEW_ICON_SIZE):
+        if url is not None and self.icons.has_bytes(url):
             return
         self._icon_pending.add(row.name)
         task = asyncio.create_task(self._load_row_icon(row))
@@ -250,7 +302,7 @@ class StoreApp(App):
                     url = await self._resolve_icon_url(row.name)
                 self._icon_urls[row.name] = url
                 if url is not None:
-                    await self.icons.get_pixels(url, PREVIEW_ICON_SIZE)
+                    await self.icons.get_bytes(url)
         finally:
             self._icon_pending.discard(row.name)
         if self.is_mounted:

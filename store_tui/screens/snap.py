@@ -9,27 +9,39 @@ import humanize
 from rich_pixels import Pixels
 from snap_python.schemas.common import Media
 from snap_python.schemas.store.info import ChannelMapItem, InfoResponse
-from textual import work
+from textual import events, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Footer, Label, Markdown, Static
 
 from store_tui.client import get_platform_architecture
-from store_tui.icons import IconCache
+from store_tui.icons import (
+    IconCache,
+    fit_icon_cells,
+    padding_cells,
+    pixels_for_cells,
+)
 from store_tui.screens.install import InstallScreen
 from store_tui.snapd import InstalledState, get_installed_state
 from store_tui.widgets.clickable_link import ClickableLink
 
 PLACEHOLDER_ICON = Path(__file__).resolve().parent.parent / "assets" / "placeholder.png"
-ICON_SIZE = (16, 16)
+FALLBACK_ICON_CELLS = (16, 8)
 
 
-def _placeholder_pixels() -> Pixels | None:
+def _placeholder_pixels(size: tuple[int, int]) -> Pixels | None:
     try:
-        return Pixels.from_image_path(PLACEHOLDER_ICON, resize=ICON_SIZE)
+        return Pixels.from_image_path(PLACEHOLDER_ICON, resize=size)
     except Exception:
         return None
+
+
+class _IconArea(VerticalScroll):
+    """Report viewport size changes so the details icon can re-fit."""
+
+    def on_resize(self, event: events.Resize) -> None:
+        self.screen._sync_icon_size()
 
 
 class SnapScreen(ModalScreen[None]):
@@ -64,8 +76,10 @@ class SnapScreen(ModalScreen[None]):
         )
         self.supported_architectures = self.snap_info.supported_architectures
 
-        placeholder = _placeholder_pixels()
+        placeholder = _placeholder_pixels(pixels_for_cells(FALLBACK_ICON_CELLS))
         self.icon_widget = Static(placeholder or "", id="snap-icon")
+        self._icon_cells = FALLBACK_ICON_CELLS
+        self._icon_outer = FALLBACK_ICON_CELLS
         self.installed_label = Label(
             "", id="is-installed-label", classes="details-item"
         )
@@ -149,7 +163,7 @@ class SnapScreen(ModalScreen[None]):
                 id="snap-header",
             ),
             Label(self.snap.summary or "", classes="snap-summary"),
-            VerticalScroll(
+            _IconArea(
                 Horizontal(
                     Vertical(
                         Label("Description", classes="section-title"),
@@ -196,17 +210,50 @@ class SnapScreen(ModalScreen[None]):
 
     def on_mount(self) -> None:
         self.set_installed_message()
+        self.call_after_refresh(self._sync_icon_size)
         if self._icon_url():
             self.load_icon()
+
+    def _icon_pixel_size(self) -> tuple[int, int]:
+        return pixels_for_cells(self._icon_cells)
+
+    def _sync_icon_size(self, force: bool = False) -> None:
+        """Fit the icon to the details column and the visible scroll height."""
+        if not self.is_mounted:
+            return
+        details = self.query_one(".snap-details")
+        scroll = self.query_one("#snap-scroll")
+        horizontal, vertical = padding_cells(self.icon_widget)
+        available_width = details.content_size.width - horizontal
+        available_height = scroll.content_size.height - vertical
+        if available_width <= 0 or available_height <= 0:
+            return
+        url = self._icon_url()
+        aspect = self.icon_cache.aspect(url) if url else None
+        cells = fit_icon_cells(available_width, available_height, aspect)
+        outer = (cells[0] + horizontal, cells[1] + vertical)
+        if cells == self._icon_cells and outer == self._icon_outer and not force:
+            return
+        self._icon_cells = cells
+        self._icon_outer = outer
+        self.icon_widget.styles.width = outer[0]
+        self.icon_widget.styles.height = outer[1]
+        self._render_icon()
+
+    def _render_icon(self) -> None:
+        url = self._icon_url()
+        size = self._icon_pixel_size()
+        pixels = self.icon_cache.render_cached(url, size) if url else None
+        self.icon_widget.update(pixels or _placeholder_pixels(size) or "")
 
     @work(exclusive=True, group="snap-icon")
     async def load_icon(self) -> None:
         url = self._icon_url()
         if not url:
             return
-        pixels = await self.icon_cache.get_pixels(url, ICON_SIZE)
-        if pixels is not None and self.is_mounted:
-            self.icon_widget.update(pixels)
+        await self.icon_cache.get_bytes(url)
+        if self.is_mounted:
+            self.call_after_refresh(self._sync_icon_size, True)
 
     async def on_unmount(self) -> None:
         if self._owns_icon_cache:

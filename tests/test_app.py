@@ -14,12 +14,11 @@ from textual.widgets import Checkbox, DataTable, Input, Label, OptionList, Selec
 
 from store_tui.app import (
     PREVIEW_ICON_PATH,
-    PREVIEW_ICON_SIZE,
     BrowseMode,
     StoreApp,
     format_preview,
 )
-from store_tui.icons import IconCache
+from store_tui.icons import IconCache, pixels_for_cells
 from store_tui.screens.activity import ActivityScreen
 from store_tui.screens.category import CategoryScreen
 from store_tui.screens.error import ErrorScreen
@@ -178,6 +177,35 @@ async def test_main_preview_stacks_when_too_narrow(client: FakeClient) -> None:
         assert icon.region.y < details.region.y
 
 
+async def test_preview_icon_fills_its_available_area(client: FakeClient) -> None:
+    app = make_app(client)
+    async with app.run_test(size=(120, 30)) as pilot:
+        await settle(app, pilot)
+        icon = app.query_one("#store-icon")
+        wide = app._preview_cells
+        assert wide != (12, 6)
+        assert (icon.content_size.width, icon.content_size.height) == wide
+
+        await pilot.resize_terminal(120, 16)
+        await settle(app, pilot)
+        short = app._preview_cells
+        assert short[1] < wide[1]
+        assert short[0] < wide[0]
+        assert (icon.content_size.width, icon.content_size.height) == short
+
+        await pilot.resize_terminal(120, 40)
+        await settle(app, pilot)
+        tall = app._preview_cells
+        assert tall[0] > short[0]
+        assert (icon.content_size.width, icon.content_size.height) == tall
+
+        await pilot.resize_terminal(90, 30)
+        await settle(app, pilot)
+        narrow = app._preview_cells
+        assert narrow[0] < tall[0]
+        assert (icon.content_size.width, icon.content_size.height) == narrow
+
+
 async def test_preview_prefetches_ten_then_loads_another_batch(
     client: FakeClient, monkeypatch
 ) -> None:
@@ -227,11 +255,11 @@ async def test_preview_prefetches_ten_then_loads_another_batch(
         assert current_url in requested
         assert await wait_until(
             pilot,
-            lambda: app.icons.cached_pixels(current_url, PREVIEW_ICON_SIZE) is not None,
+            lambda: app.icons.has_bytes(current_url),
         )
         await pilot.pause()
         assert app.icon.renderable is app.icons.cached_pixels(
-            current_url, PREVIEW_ICON_SIZE
+            current_url, pixels_for_cells(app._preview_cells)
         )
 
 
@@ -257,10 +285,12 @@ async def test_preview_resolves_icon_without_search_media(
 
         assert await wait_until(
             pilot,
-            lambda: app.icons.cached_pixels(url, PREVIEW_ICON_SIZE) is not None,
+            lambda: app.icons.has_bytes(url),
         )
         await pilot.pause()
-        assert app.icon.renderable is app.icons.cached_pixels(url, PREVIEW_ICON_SIZE)
+        assert app.icon.renderable is app.icons.cached_pixels(
+            url, pixels_for_cells(app._preview_cells)
+        )
         assert client.store.get_snap_info.await_args.kwargs["fields"] == ["media"]
 
 
@@ -292,7 +322,7 @@ async def test_snap_screen_reuses_prefetched_icon(
         app._apply_rows([ResultRow(name="alpha", title="Alpha", icon_url=url)])
         assert await wait_until(
             pilot,
-            lambda: app.icons.cached_pixels(url, PREVIEW_ICON_SIZE) is not None,
+            lambda: app.icons.has_bytes(url),
         )
 
         await app.open_snap("alpha")
@@ -300,7 +330,15 @@ async def test_snap_screen_reuses_prefetched_icon(
         await settle(app, pilot)
 
         assert downloads == [url]
-        assert app.icons.cached_pixels(url, (16, 16)) is not None
+        screen = app.screen
+        assert screen.icon_widget.renderable is screen.icon_cache.render_cached(
+            url, screen._icon_pixel_size()
+        )
+        assert (
+            screen.icon_widget.content_size.width,
+            screen.icon_widget.content_size.height,
+        ) == screen._icon_cells
+        assert screen._icon_cells[0] > 16
 
 
 async def test_category_selection_updates_rows_and_title(client: FakeClient) -> None:
